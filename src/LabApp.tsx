@@ -1600,14 +1600,14 @@ style={{ background: 'rgba(56, 189, 248, 0.15)', border: '1px solid rgba(56, 189
 function Sidebar({ view, setView, t, isRtl, lang, mobileMenuOpen, setMobileMenuOpen, notifCount }) {
 const navItems = [
 { id: 'dashboard', icon: LayoutDashboard, label: t.dashboard, group: 'main' },
-{ id: 'flow', icon: GitBranch, label: t.flow, group: 'main', highlight: 'NEW' },
-{ id: 'scanner', icon: ScanLine, label: t.scanner, group: 'main', highlight: 'QR' },
+{ id: 'flow', icon: GitBranch, label: t.flow, group: 'main' },
+{ id: 'scanner', icon: ScanLine, label: t.scanner, group: 'main' },
 { id: 'cases', icon: Briefcase, label: t.cases, group: 'main' },
 { id: 'inventory', icon: Boxes, label: t.inventory, group: 'ops' },
 { id: 'technicians', icon: UserCog, label: t.technicians, group: 'ops' },
-{ id: 'accounting', icon: DollarSign, label: t.accounting, group: 'ops', highlight: 'NEW' },
+{ id: 'accounting', icon: DollarSign, label: t.accounting, group: 'ops' },
 { id: 'analytics', icon: BarChart3, label: t.analytics, group: 'insight' },
-{ id: 'ai', icon: Sparkles, label: t.aiAssistant, group: 'insight', highlight: 'AI' },
+{ id: 'ai', icon: Sparkles, label: t.aiAssistant, group: 'insight' },
 { id: 'settings', icon: Settings, label: t.settings, group: 'system' },
 ];
 
