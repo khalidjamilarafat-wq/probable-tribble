@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#1a0b2e" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<title>لعبة الجرأة 🔥</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --bg1: #1a0b2e;
+    --bg2: #3d1259;
+    --pink: #ff4d8d;
+    --purple: #a855f7;
+    --gold: #ffd166;
+    --card: rgba(255,255,255,0.08);
+  }
+  html, body {
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Tahoma, sans-serif;
+    color: #fff;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  body {
+    background: radial-gradient(circle at 20% 10%, #4a1772 0%, transparent 50%),
+                radial-gradient(circle at 80% 90%, #5b1d4a 0%, transparent 50%),
+                linear-gradient(160deg, var(--bg1), var(--bg2));
+    background-attachment: fixed;
+  }
+  .screen {
+    position: fixed; inset: 0;
+    display: none;
+    flex-direction: column;
+    padding: 24px;
+    animation: fade .4s ease;
+  }
+  .screen.active { display: flex; }
+  @keyframes fade { from { opacity: 0; transform: translateY(10px);} to {opacity:1; transform:none;} }
+  @keyframes pop { 0% { transform: scale(.6); opacity:0;} 60%{transform:scale(1.05);} 100%{transform:scale(1); opacity:1;} }
+
+  h1 { font-size: 2.2rem; text-align: center; margin-top: 12px;
+       background: linear-gradient(90deg, var(--pink), var(--gold));
+       -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .sub { text-align:center; opacity:.75; margin: 6px 0 18px; font-size: .95rem; }
+
+  /* ---- Setup screen ---- */
+  .add-row { display: flex; gap: 10px; margin-bottom: 14px; }
+  .add-row input {
+    flex: 1; padding: 16px; border-radius: 16px; border: none;
+    background: var(--card); color: #fff; font-size: 1.1rem; outline: none;
+    border: 1px solid rgba(255,255,255,.12);
+  }
+  .add-row input::placeholder { color: rgba(255,255,255,.5); }
+  .btn {
+    border: none; border-radius: 16px; padding: 16px 20px; font-size: 1.1rem;
+    font-weight: 700; color: #fff; cursor: pointer; transition: transform .1s;
+    background: linear-gradient(135deg, var(--pink), var(--purple));
+    box-shadow: 0 8px 24px rgba(168,85,247,.4);
+  }
+  .btn:active { transform: scale(.95); }
+  .btn.full { width: 100%; margin-top: auto; padding: 20px; font-size: 1.3rem; }
+  .btn.add { padding: 16px 22px; }
+  .players {
+    flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;
+    margin-bottom: 16px; padding: 2px;
+  }
+  .chip {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--card); padding: 14px 18px; border-radius: 14px;
+    font-size: 1.15rem; animation: pop .3s ease;
+    border: 1px solid rgba(255,255,255,.1);
+  }
+  .chip .x { color: var(--pink); font-size: 1.4rem; font-weight: 700; padding: 0 8px; }
+  .hint { text-align:center; opacity:.6; padding: 30px 10px; font-size: 1rem; }
+
+  /* ---- Front page (big button) ---- */
+  #home { justify-content: center; align-items: center; }
+  .big-btn {
+    width: 230px; height: 230px; border-radius: 50%;
+    border: none; cursor: pointer; color: #fff;
+    font-size: 2rem; font-weight: 800;
+    background: linear-gradient(135deg, var(--pink), var(--purple));
+    box-shadow: 0 0 0 0 rgba(255,77,141,.6), 0 14px 40px rgba(168,85,247,.5);
+    animation: pulse 2s infinite;
+    transition: transform .12s;
+    display:flex; align-items:center; justify-content:center; flex-direction:column;
+  }
+  .big-btn small { font-size: .9rem; opacity:.85; margin-top:6px; font-weight:500;}
+  .big-btn:active { transform: scale(.92); }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(255,77,141,.55), 0 14px 40px rgba(168,85,247,.5); }
+    70% { box-shadow: 0 0 0 28px rgba(255,77,141,0), 0 14px 40px rgba(168,85,247,.5); }
+    100% { box-shadow: 0 0 0 0 rgba(255,77,141,0), 0 14px 40px rgba(168,85,247,.5); }
+  }
+  .top-bar { position: absolute; top: 20px; left: 20px; right: 20px;
+             display:flex; justify-content:space-between; align-items:center; }
+  .icon-btn { background: var(--card); border:1px solid rgba(255,255,255,.12);
+              color:#fff; border-radius: 12px; padding: 10px 14px; font-size:.95rem; cursor:pointer; }
+
+  /* ---- Result / question card ---- */
+  #result { justify-content: center; align-items: center; gap: 18px; }
+  .roles { display: flex; gap: 12px; width: 100%; }
+  .role {
+    flex: 1; background: var(--card); border-radius: 18px; padding: 18px 10px;
+    text-align: center; border: 1px solid rgba(255,255,255,.12); animation: pop .4s ease;
+  }
+  .role .lbl { font-size: .85rem; opacity:.7; margin-bottom: 6px; }
+  .role .nm { font-size: 1.4rem; font-weight: 800; }
+  .role.ask .nm { color: var(--gold); }
+  .role.ans .nm { color: var(--pink); }
+  .qcard {
+    width: 100%; background: linear-gradient(135deg, rgba(255,77,141,.15), rgba(168,85,247,.15));
+    border: 1px solid rgba(255,255,255,.18); border-radius: 22px;
+    padding: 30px 22px; text-align: center; animation: pop .45s ease;
+    min-height: 200px; display:flex; flex-direction:column; justify-content:center; gap:14px;
+  }
+  .qcat { display:inline-block; font-size:.8rem; padding:5px 14px; border-radius:20px;
+          background: rgba(255,255,255,.15); align-self:center; }
+  .qtext { font-size: 1.5rem; line-height: 1.6; font-weight: 600; }
+  .row-btns { display:flex; gap:12px; width:100%; }
+  .row-btns .btn { flex:1; }
+  .btn.ghost { background: var(--card); border:1px solid rgba(255,255,255,.15); box-shadow:none; }
+</style>
+</head>
+<body>
+
+<!-- ====== SETUP SCREEN ====== -->
+<section class="screen active" id="setup">
+  <h1>لعبة الجرأة 🔥</h1>
+  <p class="sub">أدخل أسماء اللاعبين للبدء</p>
+  <div class="add-row">
+    <input id="nameInput" type="text" placeholder="اسم اللاعب..." maxlength="14"
+           autocomplete="off" enterkeyhint="done" />
+    <button class="btn add" id="addBtn">إضافة</button>
+  </div>
+  <div class="players" id="playerList">
+    <div class="hint" id="emptyHint">لسه ما في لاعبين 👀<br>أضف اسمين على الأقل</div>
+  </div>
+  <button class="btn full" id="startBtn">ابدأ اللعبة ▶</button>
+</section>
+
+<!-- ====== FRONT PAGE (BIG BUTTON) ====== -->
+<section class="screen" id="home">
+  <div class="top-bar">
+    <button class="icon-btn" id="editBtn">✎ اللاعبين</button>
+    <span class="icon-btn" id="countLbl">0 لاعبين</span>
+  </div>
+  <button class="big-btn" id="goBtn">اكبس!<small>طلّع سؤال</small></button>
+</section>
+
+<!-- ====== RESULT SCREEN ====== -->
+<section class="screen" id="result">
+  <div class="roles">
+    <div class="role ask"><div class="lbl">يسأل ❓</div><div class="nm" id="askerName">—</div></div>
+    <div class="role ans"><div class="lbl">يجاوب 💬</div><div class="nm" id="answerName">—</div></div>
+  </div>
+  <div class="qcard">
+    <span class="qcat" id="qCat">سؤال</span>
+    <div class="qtext" id="qText">—</div>
+  </div>
+  <div class="row-btns">
+    <button class="btn ghost" id="homeBtn">🏠</button>
+    <button class="btn" id="againBtn">سؤال ثاني 🔄</button>
+  </div>
+</section>
+
+<script>
+  // ====== 100 سؤال: جريء / محرج / حب / شخصي ======
+  const QUESTIONS = [
+    // --- جريء ---
+    {c:"جريء 🔥", q:"شو أكثر شي جريء عملته بحياتك؟"},
+    {c:"جريء 🔥", q:"لو لازم تعطي وحدة هون رقم تلفونك بالغصب، مين بتختار؟"},
+    {c:"جريء 🔥", q:"شو أكثر كذبة جريئة قلتها ونجحت فيها؟"},
+    {c:"جريء 🔥", q:"عمرك سرقت شي؟ شو كان؟"},
+    {c:"جريء 🔥", q:"لو ما في عقاب، شو أول شي مجنون بتعمله؟"},
+    {c:"جريء 🔥", q:"شو أكثر مكان غريب نمت فيه؟"},
+    {c:"جريء 🔥", q:"عمرك دخلت مكان ممنوع؟ وين؟"},
+    {c:"جريء 🔥", q:"شو سر ما حدا بيعرفه عنك من الموجودين؟"},
+    {c:"جريء 🔥", q:"لو لازم تبدّل حياتك مع شخص بالغرفة، مين بتختار؟"},
+    {c:"جريء 🔥", q:"شو أجرأ رسالة بعتتها بحياتك؟"},
+    {c:"جريء 🔥", q:"عمرك تجسست على تلفون حدا؟ تلفون مين؟"},
+    {c:"جريء 🔥", q:"شو أكثر تصرف ندمان عليه بس بتضحك لما تتذكره؟"},
+    {c:"جريء 🔥", q:"لو في كاميرا خفية بتصورك يوم كامل، شو أكثر لقطة بتخجّلك؟"},
+    {c:"جريء 🔥", q:"شو أكبر مخاطرة أخذتها بحياتك؟"},
+    {c:"جريء 🔥", q:"عمرك هربت من مكان بدون ما تدفع؟"},
+    {c:"جريء 🔥", q:"مين بالغرفة بتتحداه يعمل أجرأ تصرف؟"},
+    {c:"جريء 🔥", q:"شو أكثر شي بتخاف الناس تكتشفه عنك؟"},
+    {c:"جريء 🔥", q:"لو لازم تنشر آخر صورة بمعرض الصور علناً، شو فيها؟"},
+    {c:"جريء 🔥", q:"شو أكثر موقف حطّك بمشكلة بسبب لسانك؟"},
+    {c:"جريء 🔥", q:"عمرك تظاهرت بالمرض عشان تتهرب من شي؟ شو كان؟"},
+    {c:"جريء 🔥", q:"شو أكثر شي تطلب أعمله ولو كان محرج؟"},
+    {c:"جريء 🔥", q:"لو معك مليون وممنوع تنام الليلة، شو بتعمل فيهم؟"},
+    {c:"جريء 🔥", q:"عمرك خبّيت شي عن أهلك لليوم؟ بترضى تقوله؟"},
+    {c:"جريء 🔥", q:"شو أكثر تحدي جريء تقبل تعمله الآن؟"},
+    {c:"جريء 🔥", q:"مين بالغرفة ممكن يكون عمل أكثر شي مجنون؟"},
+
+    // --- محرج 😳 ---
+    {c:"محرج 😳", q:"شو أكثر موقف محرج صار معك قدام ناس؟"},
+    {c:"محرج 😳", q:"عمرك ناديت حدا باسم غلط؟ شو صار؟"},
+    {c:"محرج 😳", q:"شو آخر مرة وقعت فيها قدام الناس؟"},
+    {c:"محرج 😳", q:"عمرك بعتت رسالة لشخص غلط؟ شو كان فيها؟"},
+    {c:"محرج 😳", q:"شو أكثر شي محرج بتعمله لما تكون لحالك؟"},
+    {c:"محرج 😳", q:"عمرك انفضحت وانت بتحكي عن حدا وهو ورا ظهرك؟"},
+    {c:"محرج 😳", q:"شو أغبى سؤال سألته بحياتك؟"},
+    {c:"محرج 😳", q:"عمرك علق شي ببزانك أو سنانك قدام الناس؟"},
+    {c:"محرج 😳", q:"شو آخر شي بحثت عنه بجوجل وما بتحب حدا يشوفه؟"},
+    {c:"محرج 😳", q:"عمرك غنّيت بصوت عالي وانت فاكر ما في حدا؟"},
+    {c:"محرج 😳", q:"شو أكثر اسم دلع محرج كان ينادوك فيه صغير؟"},
+    {c:"محرج 😳", q:"عمرك ضحكت بموقف مو مناسب أبداً؟ وين؟"},
+    {c:"محرج 😳", q:"شو أكثر موضة لبستها وندمان عليها لليوم؟"},
+    {c:"محرج 😳", q:"عمرك نسيت اسم حدا وانت بتعرّفه على غيره؟"},
+    {c:"محرج 😳", q:"شو أكثر عادة محرجة عندك بتحاول تخبيها؟"},
+    {c:"محرج 😳", q:"عمرك دخلت بيت غلط أو سيارة غلط؟"},
+    {c:"محرج 😳", q:"شو آخر مرة بكيت من فيلم أو مسلسل؟"},
+    {c:"محرج 😳", q:"عمرك وقعت بحب من طرف واحد وانفضحت؟"},
+    {c:"محرج 😳", q:"شو أكثر شي بتسوّيه ومحرج لو تصور وانت تعمله؟"},
+    {c:"محرج 😳", q:"عمرك لوّحت لحدا وطلع مو قاصدك هو؟"},
+    {c:"محرج 😳", q:"شو أكثر لقب أطلقوه عليك وبتكرهه؟"},
+    {c:"محرج 😳", q:"عمرك طلع صوت من بطنك بمكان هادي؟ وين؟"},
+    {c:"محرج 😳", q:"شو أكثر تصرف طفولي لسه بتعمله؟"},
+    {c:"محرج 😳", q:"عمرك علّقت لايك بصورة قديمة لحدا بالغلط؟"},
+    {c:"محرج 😳", q:"شو أكثر موقف تتمنى تمحيه من ذاكرة الناس؟"},
+
+    // --- حب ❤️ ---
+    {c:"حب ❤️", q:"مين أول حب بحياتك؟ كيف كان؟"},
+    {c:"حب ❤️", q:"شو أكثر صفة بتخليك تقع بالحب بسرعة؟"},
+    {c:"حب ❤️", q:"لو لازم تختار شخص بالغرفة لموعد عشاء، مين؟"},
+    {c:"حب ❤️", q:"شو أكثر شي رومانسي عملته أو تتمنى تعمله؟"},
+    {c:"حب ❤️", q:"عمرك حبيت شخص وما قلتله؟"},
+    {c:"حب ❤️", q:"شو مواصفات شريك حياتك المثالي؟"},
+    {c:"حب ❤️", q:"عمرك رجعت لشخص بعد ما انفصلت عنه؟"},
+    {c:"حب ❤️", q:"شو أول شي بتلاحظه بالشخص اللي بيعجبك؟"},
+    {c:"حب ❤️", q:"بتؤمن بالحب من أول نظرة؟ ليش؟"},
+    {c:"حب ❤️", q:"شو أكثر رسالة حب أثرت فيك؟"},
+    {c:"حب ❤️", q:"لو تكتب اسم على قلبك، اسم مين بيكون؟"},
+    {c:"حب ❤️", q:"شو أكثر شي بتعمله الحبيبة/الحبيب وبيذوّبك؟"},
+    {c:"حب ❤️", q:"عمرك غرت غيرة جنونية؟ من مين؟"},
+    {c:"حب ❤️", q:"شو حلمك بقصة حب مثالية؟"},
+    {c:"حب ❤️", q:"مين أكثر شخص اشتقتله بصمت؟"},
+    {c:"حب ❤️", q:"عمرك سامحت بخيانة بالحب؟"},
+    {c:"حب ❤️", q:"شو أكثر أغنية بتذكرك بحب قديم؟"},
+    {c:"حب ❤️", q:"لو يرجع شخص من ماضيك، مين تتمنى يكون؟"},
+    {c:"حب ❤️", q:"شو أكبر تضحية عملتها لشخص بتحبه؟"},
+    {c:"حب ❤️", q:"بتفضل الحب الهادي ولا المجنون؟ ليش؟"},
+    {c:"حب ❤️", q:"عمرك حلمت بشخص موجود بالغرفة؟"},
+    {c:"حب ❤️", q:"شو أكثر كلمة بتحب تسمعها من اللي بتحبه؟"},
+    {c:"حب ❤️", q:"لو لازم تعترف بإعجابك لحدا الآن، مين؟"},
+    {c:"حب ❤️", q:"شو أحلى موقف عشته بقصة حب؟"},
+    {c:"حب ❤️", q:"عمرك حبيت شخص ممنوع تحبه؟"},
+
+    // --- شخصي 🧠 ---
+    {c:"شخصي 🧠", q:"شو أكبر حلم بدك تحققه قبل ما تموت؟"},
+    {c:"شخصي 🧠", q:"شو أكثر شي بتخاف منه بالحياة؟"},
+    {c:"شخصي 🧠", q:"لو ترجع بالزمن، شو الشي اللي بتغيره؟"},
+    {c:"شخصي 🧠", q:"مين الشخص اللي أثّر فيك أكثر شي؟"},
+    {c:"شخصي 🧠", q:"شو أكبر إنجاز فخور فيه؟"},
+    {c:"شخصي 🧠", q:"شو أكثر شي بتندم عليه لليوم؟"},
+    {c:"شخصي 🧠", q:"لو معك يوم واحد بس بالحياة، شو بتعمل؟"},
+    {c:"شخصي 🧠", q:"شو أكبر سر بتتمنى تبوح فيه يوماً؟"},
+    {c:"شخصي 🧠", q:"مين الشخص اللي بتثق فيه أكثر من نفسك؟"},
+    {c:"شخصي 🧠", q:"شو أصعب قرار أخذته بحياتك؟"},
+    {c:"شخصي 🧠", q:"شو الشي اللي يبكّيك بسرعة؟"},
+    {c:"شخصي 🧠", q:"لو تقدر تغير صفة وحدة فيك، شو بتختار؟"},
+    {c:"شخصي 🧠", q:"شو أكثر موقف غيّر نظرتك للحياة؟"},
+    {c:"شخصي 🧠", q:"مين الشخص اللي بتشتاقله ومو موجود بحياتك؟"},
+    {c:"شخصي 🧠", q:"شو أكبر كذبة بتكذبها على نفسك؟"},
+    {c:"شخصي 🧠", q:"شو الشي اللي بيخليك تحس إنك حي فعلاً؟"},
+    {c:"شخصي 🧠", q:"لو لازم تختار بين الفلوس والحب، شو بتختار؟"},
+    {c:"شخصي 🧠", q:"شو أكثر عادة بدك تتخلص منها؟"},
+    {c:"شخصي 🧠", q:"مين أكثر شخص ظلمته وبتتمنى تعتذرله؟"},
+    {c:"شخصي 🧠", q:"شو الشي اللي يخليك تنام مرتاح بالليل؟"},
+    {c:"شخصي 🧠", q:"شو أكبر تحدي عشته وطلعت منه أقوى؟"},
+    {c:"شخصي 🧠", q:"لو حياتك فيلم، شو بيكون عنوانه؟"},
+    {c:"شخصي 🧠", q:"شو الشي اللي ما حدا بيقدّره فيك وبيوجعك؟"},
+    {c:"شخصي 🧠", q:"مين الشخص اللي بتسامحه مهما عمل؟"},
+    {c:"شخصي 🧠", q:"شو أكثر نصيحة غيّرت حياتك؟"}
+  ];
+
+  // ====== STATE ======
+  let players = [];
+  let lastIndex = -1;
+
+  // ====== HELPERS ======
+  const $ = (id) => document.getElementById(id);
+  function show(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    $(id).classList.add('active');
+  }
+  function vibrate(ms) { if (navigator.vibrate) navigator.vibrate(ms); }
+
+  // ====== SETUP ======
+  function renderPlayers() {
+    const list = $('playerList');
+    list.innerHTML = '';
+    if (players.length === 0) {
+      list.innerHTML = '<div class="hint" id="emptyHint">لسه ما في لاعبين 👀<br>أضف اسمين على الأقل</div>';
+      return;
+    }
+    players.forEach((p, i) => {
+      const div = document.createElement('div');
+      div.className = 'chip';
+      div.innerHTML = `<span>🎮 ${p}</span><span class="x" data-i="${i}">✕</span>`;
+      list.appendChild(div);
+    });
+  }
+  function addPlayer() {
+    const inp = $('nameInput');
+    const name = inp.value.trim();
+    if (!name) return;
+    players.push(name);
+    inp.value = '';
+    inp.focus();
+    renderPlayers();
+    vibrate(20);
+  }
+  $('addBtn').addEventListener('click', addPlayer);
+  $('nameInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') addPlayer(); });
+  $('playerList').addEventListener('click', (e) => {
+    if (e.target.classList.contains('x')) {
+      players.splice(+e.target.dataset.i, 1);
+      renderPlayers();
+      vibrate(20);
+    }
+  });
+  $('startBtn').addEventListener('click', () => {
+    if (players.length < 2) {
+      alert('لازم على الأقل لاعبين اثنين! 👥');
+      return;
+    }
+    $('countLbl').textContent = players.length + ' لاعبين';
+    show('home');
+  });
+
+  // ====== HOME / DRAW ======
+  function draw() {
+    // اختر لاعبين مختلفين
+    let i = Math.floor(Math.random() * players.length);
+    let j = Math.floor(Math.random() * players.length);
+    while (j === i) j = Math.floor(Math.random() * players.length);
+
+    // اختر سؤال غير مكرر مباشرة
+    let qi = Math.floor(Math.random() * QUESTIONS.length);
+    if (QUESTIONS.length > 1) {
+      while (qi === lastIndex) qi = Math.floor(Math.random() * QUESTIONS.length);
+    }
+    lastIndex = qi;
+    const Q = QUESTIONS[qi];
+
+    $('askerName').textContent = players[i];
+    $('answerName').textContent = players[j];
+    $('qCat').textContent = Q.c;
+    $('qText').textContent = Q.q;
+    vibrate(40);
+    show('result');
+  }
+  $('goBtn').addEventListener('click', draw);
+  $('againBtn').addEventListener('click', draw);
+  $('homeBtn').addEventListener('click', () => show('home'));
+  $('editBtn').addEventListener('click', () => show('setup'));
+
+  renderPlayers();
+</script>
+</body>
+</html>
