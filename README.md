@@ -35,14 +35,18 @@ Steps:
 ### AI assistant (optional)
 
 The assistant calls Claude through a serverless function
-(`netlify/functions/claude.ts`) so the API key stays server-side. To enable it,
-add a site environment variable in Netlify:
+(`netlify/functions/claude.ts`) so the API key stays server-side. Pick **one**
+provider and set its key as a site environment variable in Netlify:
 
-- `ANTHROPIC_API_KEY` — your Anthropic API key (required)
-- `CLAUDE_MODEL` — optional, defaults to `claude-opus-4-8`
+- **Google Gemini (free tier)** — `GEMINI_API_KEY` (get one at
+  https://aistudio.google.com/apikey). Optional `GEMINI_MODEL`
+  (defaults to `gemini-2.0-flash`).
+- **Anthropic Claude (paid)** — `ANTHROPIC_API_KEY`. Optional `CLAUDE_MODEL`
+  (defaults to `claude-opus-4-8`).
 
-Without a key, the assistant automatically falls back to a fast **offline local
-search** engine over your lab data — so it works either way.
+If `GEMINI_API_KEY` is set it is used first. Without any key, the assistant
+automatically falls back to a fast **offline local search** engine over your
+lab data — so it works either way.
 
 ## Data & backups
 
