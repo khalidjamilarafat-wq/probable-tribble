@@ -792,6 +792,148 @@ d.setDate(d.getDate() + days);
 return d.toISOString().split('T')[0];
 };
 
+// ═══════════════════════════════════════════════════════════════════════
+//  DEMO SEED DATA — simulates ~3 months of a working lab (50 varied cases)
+//  + a full opening inventory (~6 months of supply). Deterministic per case.
+// ═══════════════════════════════════════════════════════════════════════
+const _SEED_PT = [
+  "Ahmed K.", "Fatima R.", "Yusuf A.", "Mariam S.", "Khalid M.", "Nora B.", "Sara L.", "Omar T.",
+  "Layla H.", "Hassan D.", "Reem F.", "Tariq N.", "Dana A.", "Saif R.", "Hala M.", "Faris K.",
+  "Lujain S.", "Bader Q.", "Aisha W.", "Majed Z.", "Salma E.", "Nayef G.", "Joud B.", "Talal H.",
+  "Maha R.", "Ziad K.", "Rana F.", "Adel M.", "Shahad T.", "Waleed N.", "Ghadeer A.", "Sami L.",
+  "Noor H.", "Rakan S.", "Lina D.", "Yara Q.", "Hamad K.", "Maya R.", "Suhail B.", "Asma F.",
+  "Khaled R.", "Dima S.", "Fahad M.", "Reham N.", "Basel T.", "Jana H.", "Mansour K.", "Sereen A.",
+  "Anas R.", "Wafa S.",
+];
+const _SEED_CLIN = [
+  { clinic: "Dr. Salem Clinic", doctor: "Dr. Salem Al-Otaibi" },
+  { clinic: "Smile Center", doctor: "Dr. Lina Haddad" },
+  { clinic: "Royal Dental", doctor: "Dr. Faisal Nasser" },
+  { clinic: "Bright Dental Care", doctor: "Dr. Huda Karim" },
+  { clinic: "Al-Noor Polyclinic", doctor: "Dr. Tarek Mansour" },
+  { clinic: "Pearl Dental", doctor: "Dr. Rana Saleh" },
+  { clinic: "City Dental Center", doctor: "Dr. Omar Zayd" },
+  { clinic: "Gulf Specialist Dental", doctor: "Dr. Maya Fadel" },
+];
+const _SEED_SHADES = ["A1", "A2", "A3", "A3.5", "B1", "B2", "C1", "C2", "D2", "D3", "BL2", "BL3"];
+const _SEED_NOTES = ["", "Patient prefers a lighter shade", "Rush case — deliver ASAP", "", "Re-check proximal contacts", "", "High smile line, esthetic priority", "", "Confirm bite with clinic", ""];
+const _SEED_BY = { reception: "Reception", plaster: "Ali Al-Rashidi", digital: "Hassan Al-Maliki", cadcam: "Saad Al-Mutairi", processing: "Omar Al-Qahtani", ceramic: "Mohammed Al-Enezi", office: "Lab Manager" };
+const _SEED_TECHBYTYPE = { zirconia: "Hassan", emax: "Mohammed", veneer: "Mohammed", implant: "Saad", denture: "Omar", pmma: "Ali" };
+const _SEED_TYPES = [
+  { type: "zirconia", work: "crown", price: 30, pattern: "single" },
+  { type: "zirconia", work: "bridge", price: 35, pattern: "bridge3" },
+  { type: "emax", work: "crown", price: 45, pattern: "single" },
+  { type: "emax", work: "veneer", price: 55, pattern: "veneers6" },
+  { type: "veneer", work: "veneer", price: 55, pattern: "veneers8" },
+  { type: "pmma", work: "crown", price: 20, pattern: "bridge3" },
+  { type: "implant", work: "implant", price: 120, pattern: "implantSingle" },
+  { type: "implant", work: "bridge", price: 150, pattern: "implantBridge" },
+  { type: "denture", work: "other", price: 180, pattern: "fullarch" },
+  { type: "pmma", work: "other", price: 25, pattern: "fullarch" },
+];
+const _SEED_QUAD = [
+  [18, 17, 16, 15, 14, 13, 12, 11],
+  [21, 22, 23, 24, 25, 26, 27, 28],
+  [48, 47, 46, 45, 44, 43, 42, 41],
+  [31, 32, 33, 34, 35, 36, 37, 38],
+];
+const _seedRng = (seed) => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+function _seedTeeth(p, rnd) {
+  const pick = (arr) => arr[Math.floor(rnd() * arr.length)];
+  if (p === "bridge3" || p === "implantBridge") { const q = pick(_SEED_QUAD); const s = Math.floor(rnd() * (q.length - 3)); return q.slice(s, s + 3); }
+  if (p === "veneers6") return [13, 12, 11, 21, 22, 23];
+  if (p === "veneers8") return [14, 13, 12, 11, 21, 22, 23, 24];
+  if (p === "implantSingle") return [pick([16, 26, 36, 46, 15, 25, 35, 45])];
+  if (p === "fullarch") return rnd() < 0.5 ? [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28] : [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
+  return [pick(pick(_SEED_QUAD))];
+}
+function _seedHist(roomId, startMs, endMs) {
+  const idx = ROOMS.findIndex(r => r.id === roomId);
+  const path = ROOMS.slice(0, idx + 1);
+  const span = Math.max(endMs - startMs, 3600000);
+  return path.map((r, k) => ({ room: r.id, at: new Date(startMs + span * ((k + 0.5) / path.length)).toISOString(), by: _SEED_BY[r.id] || "Tech" }));
+}
+function seedCases() {
+  const out = []; const now = Date.now(); const day = 86400000;
+  const rooms16 = ["reception", "reception", "plaster", "plaster", "digital", "digital", "cadcam", "cadcam", "processing", "ceramic", "ceramic", "office", "office", "digital", "ceramic", "cadcam"];
+  const dd16 = [5, -2, 3, 1, -1, 0, 2, 4, 6, 1, -1, 0, 2, 7, 3, 1];
+  const stuck = new Set([4, 9, 14]);
+  for (let i = 0; i < 50; i++) {
+    const rnd = _seedRng((i + 7) * 2654435761);
+    const tcfg = _SEED_TYPES[i % _SEED_TYPES.length];
+    const teeth = _seedTeeth(tcfg.pattern, rnd);
+    const isImplant = tcfg.type === "implant";
+    const units = tcfg.type === "denture" ? 1 : teeth.length;
+    const clin = _SEED_CLIN[i % _SEED_CLIN.length];
+    const active = i >= 34;
+    let createdDaysAgo, currentRoom, status, deadlineDelta, remake = false, intakeStatus = "complete", lead = 0, aIdx = -1;
+    if (!active) {
+      createdDaysAgo = 88 - i * 2; lead = 7 + (i % 6);
+      currentRoom = "office"; status = "delivered"; remake = (i % 8 === 5);
+      deadlineDelta = -(createdDaysAgo) + lead + (i % 3);
+    } else {
+      aIdx = i - 34; createdDaysAgo = (16 - aIdx) + 1; currentRoom = rooms16[aIdx];
+      status = currentRoom === "office" ? "completed" : currentRoom === "reception" ? (aIdx % 2 ? "inProgress" : "pending") : "inProgress";
+      deadlineDelta = dd16[aIdx];
+      if (status === "pending") intakeStatus = "incomplete";
+    }
+    const createdMs = now - createdDaysAgo * day;
+    let history;
+    if (!active) { history = _seedHist("office", createdMs, createdMs + lead * day); }
+    else {
+      history = _seedHist(currentRoom, createdMs, now);
+      if (stuck.has(aIdx) && history.length) { const sla = ROOM_SLA_HOURS[currentRoom] || 12; history[history.length - 1].at = new Date(now - sla * 2.2 * 3600000).toISOString(); }
+    }
+    const d = new Date(createdMs); const yy = String(d.getFullYear()).slice(-2); const mm = String(d.getMonth() + 1).padStart(2, "0");
+    out.push({
+      id: uid(), caseId: `C-${yy}${mm}-${String(i + 1).padStart(3, "0")}`,
+      patient: _SEED_PT[i % _SEED_PT.length], clinic: clin.clinic, doctorName: clin.doctor,
+      type: tcfg.type, typeOfWork: tcfg.work, teeth, shade: _SEED_SHADES[(i * 5) % _SEED_SHADES.length],
+      units, price: tcfg.price, status, technician: _SEED_TECHBYTYPE[tcfg.type] || "Hassan",
+      date: new Date(createdMs).toISOString().split("T")[0], remake,
+      currentRoom, deadline: futureDateStr(deadlineDelta), intakeStatus, isImplant,
+      implantData: isImplant ? { type: units > 1 ? "bridge" : "single", retention: i % 2 ? "screw" : "cement", systemSpec: true, posClear: true, impressionCoping: true, analog: true, abutment: true, screws: true, scanbodyType: true, scanbodyBrandHeight: true, scanbodyTight: true, library: true, stl: true } : null,
+      checklist: { prescription: true, impression: true, bite: true, shade: true, opposing: intakeStatus === "complete" },
+      missing: { impression: false, bite: false, shade: intakeStatus !== "complete", implant: false },
+      notes: _SEED_NOTES[i % _SEED_NOTES.length],
+      roomHistory: history,
+    });
+  }
+  return out;
+}
+function seedInventory() {
+  return [
+    { name: "Ivoclar Zirconia Multilayer 98mm", stock: 14, reorderAt: 5, unitPrice: 150, supplier: "Ivoclar Vivadent", category: "zirconia" },
+    { name: "Aidite Chinese Zirconia 98mm", stock: 30, reorderAt: 10, unitPrice: 50, supplier: "Aidite", category: "zirconia" },
+    { name: "Tosoh Zirconia Disc", stock: 9, reorderAt: 5, unitPrice: 100, supplier: "Tosoh", category: "zirconia" },
+    { name: "Upcera ST Zirconia", stock: 12, reorderAt: 6, unitPrice: 70, supplier: "Upcera", category: "zirconia" },
+    { name: "IPS e.max CAD Block (B40)", stock: 40, reorderAt: 15, unitPrice: 22, supplier: "Ivoclar Vivadent", category: "emax" },
+    { name: "IPS e.max Press Ingot", stock: 18, reorderAt: 8, unitPrice: 18, supplier: "Ivoclar Vivadent", category: "emax" },
+    { name: "PMMA Multilayer Disc", stock: 16, reorderAt: 6, unitPrice: 45, supplier: "Yamahachi", category: "pmma" },
+    { name: "PMMA Clear Temp Disc", stock: 10, reorderAt: 5, unitPrice: 25, supplier: "Yamahachi", category: "pmma" },
+    { name: "Titanium Disc (Grade 5)", stock: 3, reorderAt: 4, unitPrice: 120, supplier: "Straumann", category: "implant" },
+    { name: "Ti-Base Abutments (pack)", stock: 25, reorderAt: 10, unitPrice: 35, supplier: "Dentsply", category: "implant" },
+    { name: "Implant Analogs (pack)", stock: 20, reorderAt: 8, unitPrice: 15, supplier: "Straumann", category: "implant" },
+    { name: "Cobalt-Chrome Disc", stock: 8, reorderAt: 4, unitPrice: 60, supplier: "BEGO", category: "metal" },
+    { name: "Denture Base Acrylic (Heat-cure)", stock: 12, reorderAt: 5, unitPrice: 35, supplier: "Vertex", category: "denture" },
+    { name: "Acrylic Teeth Set (A2)", stock: 22, reorderAt: 8, unitPrice: 12, supplier: "Ivoclar Vivadent", category: "denture" },
+    { name: "Cold-cure Acrylic", stock: 6, reorderAt: 4, unitPrice: 28, supplier: "Vertex", category: "denture" },
+    { name: "PEEK Disc", stock: 5, reorderAt: 3, unitPrice: 90, supplier: "Juvora", category: "peek" },
+    { name: "3D Print Resin — Crown & Bridge", stock: 7, reorderAt: 4, unitPrice: 80, supplier: "SprintRay", category: "resin" },
+    { name: "3D Print Resin — Model", stock: 9, reorderAt: 4, unitPrice: 45, supplier: "SprintRay", category: "resin" },
+    { name: "VITA Akzent Glaze", stock: 2, reorderAt: 3, unitPrice: 35, supplier: "VITA", category: "consumable" },
+    { name: "Ceramic Powder (Dentine A2)", stock: 3, reorderAt: 4, unitPrice: 50, supplier: "VITA", category: "consumable" },
+    { name: "Stain Kit", stock: 6, reorderAt: 2, unitPrice: 25, supplier: "Ivoclar Vivadent", category: "consumable" },
+    { name: "Investment Material (Phosphate)", stock: 18, reorderAt: 6, unitPrice: 25, supplier: "GC", category: "consumable" },
+    { name: "Dental Plaster Type IV", stock: 40, reorderAt: 15, unitPrice: 8, supplier: "GC", category: "consumable" },
+    { name: "Modeling Liquid", stock: 9, reorderAt: 3, unitPrice: 20, supplier: "Renfert", category: "consumable" },
+    { name: "Milling Burs Set (Zirconia)", stock: 14, reorderAt: 6, unitPrice: 80, supplier: "Sirona", category: "tool" },
+    { name: "Milling Burs Set (e.max)", stock: 8, reorderAt: 4, unitPrice: 90, supplier: "Sirona", category: "tool" },
+    { name: "Sintering Beads", stock: 5, reorderAt: 2, unitPrice: 40, supplier: "Dekema", category: "tool" },
+    { name: "Polishing Kit", stock: 7, reorderAt: 3, unitPrice: 35, supplier: "EVE", category: "tool" },
+  ].map(x => ({ id: uid(), name_ar: x.name, name_en: x.name, stock: x.stock, reorderAt: x.reorderAt, unitPrice: x.unitPrice, supplier: x.supplier, category: x.category }));
+}
+
 const defaultState = () => ({
 materials: [
 { id: uid(), name_ar: "Ivoclar Zirconia (Premium)", name_en: "Ivoclar Zirconia (Premium)", price: 150, yield: 25, type: "zirconia" },
@@ -832,97 +974,8 @@ quantities: [
 { id: uid(), name_ar: "500 وحدة", name_en: "500 units", value: 500 },
 { id: uid(), name_ar: "1000 وحدة", name_en: "1000 units", value: 1000 },
 ],
-cases: [
-{
-id: uid(), caseId: "C-2606-001", patient: "Ahmed K.", clinic: "Dr. Salem Clinic",
-type: "zirconia", units: 6, price: 30, status: "inProgress", technician: "Hassan",
-date: "2026-05-08", remake: false,
-currentRoom: "ceramic", deadline: futureDateStr(2),
-roomHistory: [
-{ room: "reception", at: new Date(Date.now() - 4*86400000).toISOString(), by: "Reception" },
-{ room: "plaster", at: new Date(Date.now() - 3*86400000).toISOString(), by: "Ali Al-Rashidi" },
-{ room: "digital", at: new Date(Date.now() - 2*86400000).toISOString(), by: "Hassan Al-Maliki" },
-{ room: "cadcam", at: new Date(Date.now() - 1.5*86400000).toISOString(), by: "Hassan Al-Maliki" },
-{ room: "processing", at: new Date(Date.now() - 1*86400000).toISOString(), by: "Omar Al-Qahtani" },
-{ room: "ceramic", at: new Date(Date.now() - 0.5*86400000).toISOString(), by: "Mohammed Al-Enezi" },
-]
-},
-{
-id: uid(), caseId: "C-2606-002", patient: "Fatima R.", clinic: "Smile Center",
-type: "emax", units: 8, price: 45, status: "inProgress", technician: "Mohammed",
-date: "2026-05-09", remake: false,
-currentRoom: "cadcam", deadline: futureDateStr(3),
-roomHistory: [
-{ room: "reception", at: new Date(Date.now() - 2*86400000).toISOString(), by: "Reception" },
-{ room: "plaster", at: new Date(Date.now() - 1.5*86400000).toISOString(), by: "Ali Al-Rashidi" },
-{ room: "digital", at: new Date(Date.now() - 1*86400000).toISOString(), by: "Hassan Al-Maliki" },
-{ room: "cadcam", at: new Date(Date.now() - 0.2*86400000).toISOString(), by: "Hassan Al-Maliki" },
-]
-},
-{
-id: uid(), caseId: "C-2606-003", patient: "Yusuf A.", clinic: "Dr. Salem Clinic",
-type: "implant", units: 2, price: 120, status: "pending", technician: "Saad",
-date: "2026-05-10", remake: false,
-currentRoom: "reception", deadline: futureDateStr(5),
-roomHistory: [
-{ room: "reception", at: new Date(Date.now() - 0.1*86400000).toISOString(), by: "Reception" },
-]
-},
-{
-id: uid(), caseId: "C-2606-004", patient: "Mariam S.", clinic: "Royal Dental",
-type: "veneer", units: 10, price: 55, status: "completed", technician: "Ali",
-date: "2026-05-04", remake: false,
-currentRoom: "office", deadline: futureDateStr(0),
-roomHistory: [
-{ room: "reception", at: new Date(Date.now() - 6*86400000).toISOString(), by: "Reception" },
-{ room: "plaster", at: new Date(Date.now() - 5*86400000).toISOString(), by: "Ali Al-Rashidi" },
-{ room: "digital", at: new Date(Date.now() - 4*86400000).toISOString(), by: "Hassan Al-Maliki" },
-{ room: "cadcam", at: new Date(Date.now() - 3*86400000).toISOString(), by: "Hassan Al-Maliki" },
-{ room: "processing", at: new Date(Date.now() - 2*86400000).toISOString(), by: "Omar Al-Qahtani" },
-{ room: "ceramic", at: new Date(Date.now() - 1*86400000).toISOString(), by: "Mohammed Al-Enezi" },
-{ room: "office", at: new Date(Date.now() - 0.2*86400000).toISOString(), by: "Lab Manager" },
-]
-},
-{
-id: uid(), caseId: "C-2606-005", patient: "Khalid M.", clinic: "Smile Center",
-type: "denture", units: 1, price: 180, status: "inProgress", technician: "Omar",
-date: "2026-05-06", remake: false,
-currentRoom: "plaster", deadline: futureDateStr(4),
-roomHistory: [
-{ room: "reception", at: new Date(Date.now() - 1*86400000).toISOString(), by: "Reception" },
-{ room: "plaster", at: new Date(Date.now() - 0.5*86400000).toISOString(), by: "Ali Al-Rashidi" },
-]
-},
-{
-id: uid(), caseId: "C-2605-098", patient: "Nora B.", clinic: "Dr. Salem Clinic",
-type: "zirconia", units: 4, price: 30, status: "delivered", technician: "Hassan",
-date: "2026-04-22", remake: true,
-currentRoom: "office", deadline: futureDateStr(-3),
-roomHistory: []
-},
-{
-id: uid(), caseId: "C-2606-006", patient: "Sara L.", clinic: "Royal Dental",
-type: "pmma", units: 8, price: 20, status: "inProgress", technician: "Ali",
-date: "2026-05-07", remake: false,
-currentRoom: "digital", deadline: futureDateStr(1),
-roomHistory: [
-{ room: "reception", at: new Date(Date.now() - 3*86400000).toISOString(), by: "Reception" },
-{ room: "plaster", at: new Date(Date.now() - 2*86400000).toISOString(), by: "Ali Al-Rashidi" },
-{ room: "digital", at: new Date(Date.now() - 1.5*86400000).toISOString(), by: "Hassan Al-Maliki" },
-]
-},
-],
-inventory: [
-{ id: uid(), name_ar: "Ivoclar Zirconia Block", name_en: "Ivoclar Zirconia Block", stock: 8, reorderAt: 5, unitPrice: 150, supplier: "Ivoclar Vivadent", category: "zirconia" },
-{ id: uid(), name_ar: "زيركون صيني", name_en: "Chinese Zirconia Block", stock: 22, reorderAt: 10, unitPrice: 50, supplier: "Aidite", category: "zirconia" },
-{ id: uid(), name_ar: "e.max CAD Block", name_en: "e.max CAD Block", stock: 4, reorderAt: 10, unitPrice: 22, supplier: "Ivoclar Vivadent", category: "emax" },
-{ id: uid(), name_ar: "Glaze (Liquid)", name_en: "Glaze (Liquid)", stock: 3, reorderAt: 2, unitPrice: 35, supplier: "VITA", category: "consumable" },
-{ id: uid(), name_ar: "Milling Burs Set", name_en: "Milling Burs Set", stock: 12, reorderAt: 5, unitPrice: 80, supplier: "Sirona", category: "tool" },
-{ id: uid(), name_ar: "Titanium Disc", name_en: "Titanium Disc", stock: 2, reorderAt: 3, unitPrice: 120, supplier: "Straumann", category: "implant" },
-{ id: uid(), name_ar: "PMMA Disc", name_en: "PMMA Disc", stock: 6, reorderAt: 4, unitPrice: 25, supplier: "Yamahachi", category: "pmma" },
-{ id: uid(), name_ar: "Ceramic Powder", name_en: "Ceramic Powder", stock: 1, reorderAt: 2, unitPrice: 50, supplier: "VITA", category: "consumable" },
-{ id: uid(), name_ar: "Investment Material", name_en: "Investment Material", stock: 14, reorderAt: 5, unitPrice: 25, supplier: "GC", category: "consumable" },
-],
+cases: seedCases(),
+inventory: seedInventory(),
 technicians: [
 { id: uid(), name_ar: "حسن المالكي", name_en: "Hassan Al-Maliki", role: "CAD/CAM", salary: 850, monthlyOutput: 280, efficiency: 94, specialty: "zirconia", room: "digital" },
 { id: uid(), name_ar: "محمد العنزي", name_en: "Mohammed Al-Enezi", role: "Ceramic", salary: 800, monthlyOutput: 210, efficiency: 91, specialty: "emax", room: "ceramic" },
