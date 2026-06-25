@@ -27,8 +27,8 @@ import * as XLSX from 'xlsx';
 //  ROOMS DEFINITION (matches workflow PDF)
 // ═══════════════════════════════════════════════════════════════════════
 const ROOMS = [
-{ id: 'reception',  num: '01', icon: LogIn,        color: '#38bdf8', ar: 'الاستقبال',       en: 'Reception',     specialty: 'reception' },
-{ id: 'plaster',    num: '02', icon: Layers,       color: '#22d3ee', ar: 'غرفة الجبص',      en: 'Plaster Room',  specialty: 'plaster'   },
+{ id: 'reception',  num: '01', icon: LogIn,        color: '#0891b2', ar: 'الاستقبال',       en: 'Reception',     specialty: 'reception' },
+{ id: 'plaster',    num: '02', icon: Layers,       color: '#06b6d4', ar: 'غرفة الجبص',      en: 'Plaster Room',  specialty: 'plaster'   },
 { id: 'digital',    num: '03', icon: Cpu,          color: '#a78bfa', ar: 'الغرفة الرقمية',  en: 'Digital Room',  specialty: 'cadcam'    },
 { id: 'cadcam',     num: '04', icon: Wrench,       color: '#f472b6', ar: 'كاد كام وطباعة',  en: 'CAD/CAM & 3D',  specialty: 'cadcam'    },
 { id: 'processing', num: '05', icon: Activity,     color: '#fb923c', ar: 'غرفة المعالجة',   en: 'Processing',    specialty: 'processing'},
@@ -962,7 +962,7 @@ vatNumber: '', // Company VAT registration number
 expenseCategories: [
 { id: 'materials', name_ar: 'مواد', name_en: 'Materials', color: '#34d399' },
 { id: 'maintenance', name_ar: 'صيانة', name_en: 'Maintenance', color: '#f5b942' },
-{ id: 'utilities', name_ar: 'مرافق', name_en: 'Utilities', color: '#38bdf8' },
+{ id: 'utilities', name_ar: 'مرافق', name_en: 'Utilities', color: '#0891b2' },
 { id: 'transport', name_ar: 'نقل', name_en: 'Transport', color: '#a78bfa' },
 { id: 'misc', name_ar: 'متنوعة', name_en: 'Miscellaneous', color: '#94a3b8' },
 ],
@@ -1295,13 +1295,13 @@ money, activeCurrency, askConfirm, removeItemUndo,
 if (loading) {
 return (
 
-<div className="min-h-screen flex items-center justify-center" style={{ background: '#0a0f1c' }}>
+<div className="min-h-screen flex items-center justify-center" style={{ background: '#eef3fa' }}>
 <div className="flex flex-col items-center gap-4">
 <div className="relative">
-<div className="w-12 h-12 rounded-full border-2 border-cyan-400/20"></div>
-<div className="absolute inset-0 w-12 h-12 rounded-full border-2 border-transparent border-t-cyan-400 animate-spin"></div>
+<div className="w-12 h-12 rounded-full border-2 border-cyan-500/20"></div>
+<div className="absolute inset-0 w-12 h-12 rounded-full border-2 border-transparent border-t-cyan-500 animate-spin"></div>
 </div>
-<div className="text-cyan-100/60 text-sm tracking-widest uppercase">Loading Evora</div>
+<div className="text-sm tracking-widest uppercase" style={{ color: '#0891b2' }}>Loading Evora</div>
 </div>
 </div>
 );
@@ -1313,33 +1313,34 @@ return (
 dir={isRtl ? 'rtl' : 'ltr'}
 className="min-h-screen relative overflow-x-hidden"
 style={{
-background: '#070b14',
+background: '#eef3fa',
 fontFamily: lang === 'ar'
 ? "'Tajawal', 'Manrope', system-ui, sans-serif"
 : "'Manrope', system-ui, sans-serif",
-color: '#e2e8f0',
+color: '#0f2942',
 }}
 >
 <style>{`
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600;700&family=Tajawal:wght@300;400;500;700;900&display=swap');
 
 :root {
-  --bg: #070b14;
-  --bg-2: #0d1424;
-  --surface: rgba(20, 28, 48, 0.55);
-  --surface-strong: rgba(28, 38, 64, 0.85);
-  --border: rgba(120, 180, 255, 0.08);
-  --border-bright: rgba(120, 180, 255, 0.18);
-  --text: #e8eef9;
-  --text-2: #94a3c4;
-  --text-3: #5d6e92;
-  --cyan: #38bdf8;
-  --cyan-bright: #22d3ee;
-  --gold: #f5b942;
-  --green: #34d399;
-  --red: #f87171;
-  --purple: #a78bfa;
-  --pink: #f472b6;
+  --bg: #eef3fa;
+  --bg-2: #ffffff;
+  --surface: #ffffff;
+  --surface-strong: #ffffff;
+  --border: rgba(15, 50, 90, 0.08);
+  --border-bright: rgba(6, 182, 212, 0.28);
+  --text: #0f2942;
+  --text-2: #46586f;
+  --text-3: #8593a6;
+  --cyan: #0891b2;
+  --cyan-bright: #2563eb;
+  --gold: #d97706;
+  --green: #059669;
+  --red: #e11d48;
+  --purple: #7c3aed;
+  --pink: #db2777;
+  --brand-grad: linear-gradient(135deg, #06b6d4, #2563eb);
 }
 
 .display-font { font-family: 'Fraunces', serif; font-feature-settings: "ss01" on, "ss02" on; }
@@ -1348,52 +1349,44 @@ color: '#e2e8f0',
 .ambient {
   position: fixed; inset: 0; pointer-events: none; z-index: 0;
   background:
-    radial-gradient(ellipse 1000px 600px at 15% -10%, rgba(56, 189, 248, 0.08), transparent 60%),
-    radial-gradient(ellipse 800px 500px at 100% 20%, rgba(167, 139, 250, 0.06), transparent 60%),
-    radial-gradient(ellipse 700px 400px at 50% 100%, rgba(245, 185, 66, 0.04), transparent 60%);
+    radial-gradient(ellipse 1000px 600px at 12% -10%, rgba(6, 182, 212, 0.10), transparent 60%),
+    radial-gradient(ellipse 900px 500px at 100% 0%, rgba(37, 99, 235, 0.08), transparent 60%),
+    radial-gradient(ellipse 700px 500px at 50% 110%, rgba(6, 182, 212, 0.06), transparent 60%);
 }
 .grid-overlay {
   position: fixed; inset: 0; pointer-events: none; z-index: 0;
   background-image:
-    linear-gradient(rgba(120, 180, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(120, 180, 255, 0.025) 1px, transparent 1px);
+    linear-gradient(rgba(15, 50, 90, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 50, 90, 0.035) 1px, transparent 1px);
   background-size: 64px 64px;
   mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
 }
-.noise {
-  position: fixed; inset: 0; pointer-events: none; z-index: 1; opacity: 0.025;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
+.noise { display: none; }
 
 .glass {
-  background: linear-gradient(145deg, rgba(28, 38, 64, 0.55), rgba(15, 22, 40, 0.65));
-  backdrop-filter: blur(20px) saturate(120%);
-  -webkit-backdrop-filter: blur(20px) saturate(120%);
+  background: #ffffff;
   border: 1px solid var(--border);
   box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
-    0 1px 2px 0 rgba(0, 0, 0, 0.3),
-    0 8px 32px -8px rgba(0, 0, 0, 0.5);
+    0 1px 2px 0 rgba(16, 24, 40, 0.04),
+    0 10px 28px -14px rgba(16, 24, 40, 0.18);
 }
 .glass-strong {
-  background: linear-gradient(145deg, rgba(35, 47, 78, 0.85), rgba(20, 28, 48, 0.85));
-  backdrop-filter: blur(24px) saturate(140%);
-  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  background: #ffffff;
   border: 1px solid var(--border-bright);
   box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
-    0 12px 40px -12px rgba(0, 0, 0, 0.6);
+    0 2px 4px 0 rgba(16, 24, 40, 0.05),
+    0 18px 44px -16px rgba(16, 24, 40, 0.28);
 }
 
-.scroll-y { overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(120,180,255,0.2) transparent; }
+.scroll-y { overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(15,50,90,0.18) transparent; }
 .scroll-y::-webkit-scrollbar { width: 6px; height: 6px; }
-.scroll-y::-webkit-scrollbar-thumb { background: rgba(120,180,255,0.2); border-radius: 3px; }
+.scroll-y::-webkit-scrollbar-thumb { background: rgba(15,50,90,0.18); border-radius: 3px; }
 .scroll-y::-webkit-scrollbar-track { background: transparent; }
 
 input, textarea, select { font-family: inherit; }
 input.themed, textarea.themed, select.themed {
-  background: rgba(10, 16, 30, 0.6);
-  border: 1px solid rgba(120, 180, 255, 0.12);
+  background: #f6f8fb;
+  border: 1px solid rgba(15, 50, 90, 0.14);
   color: var(--text);
   padding: 8px 12px;
   border-radius: 8px;
@@ -1404,8 +1397,8 @@ input.themed, textarea.themed, select.themed {
 input.themed:focus, textarea.themed:focus, select.themed:focus {
   outline: none;
   border-color: var(--cyan);
-  background: rgba(20, 30, 60, 0.85);
-  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12);
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15);
 }
 input.themed::placeholder { color: var(--text-3); }
 input[type=number].themed { font-family: 'JetBrains Mono', monospace; text-align: center; }
@@ -1419,25 +1412,25 @@ input[type=number] { -moz-appearance: textfield; }
   font-family: inherit; white-space: nowrap;
 }
 .btn-primary {
-  background: linear-gradient(135deg, var(--cyan), var(--cyan-bright));
-  color: #001220; box-shadow: 0 4px 16px -4px rgba(56, 189, 248, 0.5);
+  background: var(--brand-grad);
+  color: #ffffff; box-shadow: 0 6px 18px -6px rgba(37, 99, 235, 0.55);
 }
-.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 24px -4px rgba(56, 189, 248, 0.7); }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 10px 26px -6px rgba(37, 99, 235, 0.7); }
 .btn-ghost {
-  background: rgba(120, 180, 255, 0.06);
-  border: 1px solid rgba(120, 180, 255, 0.12);
-  color: var(--text);
+  background: #f1f5f9;
+  border: 1px solid rgba(15, 50, 90, 0.10);
+  color: var(--text-2);
 }
-.btn-ghost:hover { background: rgba(120, 180, 255, 0.12); border-color: rgba(120, 180, 255, 0.25); }
+.btn-ghost:hover { background: #e7edf4; border-color: rgba(15, 50, 90, 0.18); color: var(--text); }
 .btn-danger {
-  background: rgba(248, 113, 113, 0.1);
-  border: 1px solid rgba(248, 113, 113, 0.2);
+  background: rgba(225, 29, 72, 0.08);
+  border: 1px solid rgba(225, 29, 72, 0.22);
   color: var(--red);
 }
-.btn-danger:hover { background: rgba(248, 113, 113, 0.18); }
+.btn-danger:hover { background: rgba(225, 29, 72, 0.15); }
 
-.glow-cyan { box-shadow: 0 0 24px rgba(56, 189, 248, 0.3); }
-.glow-gold { box-shadow: 0 0 24px rgba(245, 185, 66, 0.25); }
+.glow-cyan { box-shadow: 0 8px 24px -8px rgba(6, 182, 212, 0.5); }
+.glow-gold { box-shadow: 0 8px 24px -8px rgba(217, 119, 6, 0.35); }
 
 @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes pulse-soft { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
@@ -1449,16 +1442,16 @@ input[type=number] { -moz-appearance: textfield; }
 .scan-line { animation: scanLine 2.5s ease-in-out infinite; }
 
 .data-card { transition: all 0.2s; }
-.data-card:hover { transform: translateY(-2px); border-color: rgba(120, 180, 255, 0.22); }
+.data-card:hover { transform: translateY(-2px); border-color: rgba(6, 182, 212, 0.35); box-shadow: 0 14px 32px -16px rgba(16, 24, 40, 0.25); }
 
 .accent-bar {
   width: 3px;
-  background: linear-gradient(180deg, var(--cyan), var(--cyan-bright));
+  background: var(--brand-grad);
   border-radius: 0 3px 3px 0;
 }
 body[dir="rtl"] .accent-bar { border-radius: 3px 0 0 3px; }
 
-.text-glow { text-shadow: 0 0 24px rgba(56, 189, 248, 0.4); }
+.text-glow { text-shadow: none; }
 
 .tab-btn {
   padding: 10px 14px; border-radius: 8px; font-weight: 600; font-size: 12.5px;
@@ -1466,10 +1459,10 @@ body[dir="rtl"] .accent-bar { border-radius: 3px 0 0 3px; }
   border: 1px solid transparent;
 }
 .tab-btn.active {
-  color: var(--text); background: rgba(56, 189, 248, 0.1);
-  border-color: rgba(56, 189, 248, 0.25);
+  color: #0e7490; background: rgba(6, 182, 212, 0.12);
+  border-color: rgba(6, 182, 212, 0.30);
 }
-.tab-btn:hover:not(.active) { color: var(--text); background: rgba(120, 180, 255, 0.05); }
+.tab-btn:hover:not(.active) { color: var(--text); background: rgba(15, 50, 90, 0.05); }
 
 .nav-item {
   display: flex; align-items: center; gap: 12px; padding: 10px 14px;
@@ -1477,13 +1470,15 @@ body[dir="rtl"] .accent-bar { border-radius: 3px 0 0 3px; }
   font-size: 13px; font-weight: 500; transition: all 0.15s;
   border: 1px solid transparent;
 }
-.nav-item:hover { background: rgba(120, 180, 255, 0.05); color: var(--text); }
+.nav-item:hover { background: rgba(15, 50, 90, 0.05); color: var(--text); }
 .nav-item.active {
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(56, 189, 248, 0.04));
-  border-color: rgba(56, 189, 248, 0.2);
-  color: var(--text);
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.14), rgba(37, 99, 235, 0.06));
+  border-color: rgba(6, 182, 212, 0.28);
+  color: #0e7490;
 }
 .nav-item.active .nav-icon { color: var(--cyan); }
+
+.flow-arrow { stroke: rgba(15, 50, 90, 0.22); }
 
 @media (max-width: 1024px) {
   .desktop-sidebar { display: none; }
@@ -1564,7 +1559,7 @@ toast.type === 'error' ? <AlertTriangle size={18} color="#f87171" /> :
 <button
 onClick={() => { toast.action.fn(); setToast(null); }}
 className="ml-2 text-[12px] font-bold px-2.5 py-1 rounded-md shrink-0"
-style={{ background: 'rgba(56, 189, 248, 0.15)', border: '1px solid rgba(56, 189, 248, 0.3)', color: '#38bdf8' }}
+style={{ background: 'rgba(56, 189, 248, 0.15)', border: '1px solid rgba(56, 189, 248, 0.3)', color: '#0891b2' }}
 >
 {toast.action.label}
 </button>
@@ -1576,10 +1571,10 @@ style={{ background: 'rgba(56, 189, 248, 0.15)', border: '1px solid rgba(56, 189
 {/* Themed confirmation dialog */}
 {dialog && (
 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)' }} onClick={() => resolveDialog(false)}>
-<div className="glass-strong rounded-2xl w-full max-w-md p-6" style={{ background: 'rgba(15, 22, 40, 0.98)', border: '1px solid rgba(120, 180, 255, 0.2)', animation: 'slideUp 0.25s ease-out' }} onClick={e => e.stopPropagation()}>
+<div className="glass-strong rounded-2xl w-full max-w-md p-6" style={{ background: 'rgba(255, 255, 255, 0.98)', border: '1px solid rgba(120, 180, 255, 0.2)', animation: 'slideUp 0.25s ease-out' }} onClick={e => e.stopPropagation()}>
 <div className="flex items-start gap-3 mb-4">
 <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: dialog.danger ? 'rgba(248, 113, 113, 0.15)' : 'rgba(56, 189, 248, 0.15)', border: `1px solid ${dialog.danger ? 'rgba(248, 113, 113, 0.3)' : 'rgba(56, 189, 248, 0.3)'}` }}>
-<AlertTriangle size={18} color={dialog.danger ? '#f87171' : '#38bdf8'} />
+<AlertTriangle size={18} color={dialog.danger ? '#f87171' : '#0891b2'} />
 </div>
 <div className="flex-1 min-w-0">
 <div className="text-[15px] font-bold mb-1" style={{ color: 'var(--text)' }}>{dialog.title}</div>
@@ -1634,7 +1629,7 @@ onClick={() => setMobileMenuOpen(false)}
 className={`desktop-sidebar w-64 shrink-0 border-r border-l-0 ${isRtl ? 'border-l border-r-0' : ''} sticky top-0 h-screen scroll-y glass`}
 style={{
 borderColor: 'rgba(120, 180, 255, 0.08)',
-background: 'linear-gradient(180deg, rgba(15, 22, 40, 0.85), rgba(10, 16, 30, 0.9))',
+background: 'linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(248, 250, 252, 0.96))',
 backdropFilter: 'blur(20px)',
 }}
 >
@@ -1644,7 +1639,7 @@ backdropFilter: 'blur(20px)',
   <aside
     className={`fixed top-0 ${isRtl ? 'right-0' : 'left-0'} bottom-0 w-72 z-50 lg:hidden transform transition-transform duration-300 scroll-y glass`}
     style={{
-      background: 'linear-gradient(180deg, rgba(15, 22, 40, 0.98), rgba(10, 16, 30, 0.98))',
+      background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.98))',
       transform: mobileMenuOpen ? 'translateX(0)' : (isRtl ? 'translateX(100%)' : 'translateX(-100%)'),
       borderRight: isRtl ? 'none' : '1px solid rgba(120, 180, 255, 0.15)',
       borderLeft: isRtl ? '1px solid rgba(120, 180, 255, 0.15)' : 'none',
@@ -1664,13 +1659,13 @@ return (
 <div className="flex items-center gap-3 mb-8 pb-5 border-b" style={{ borderColor: 'rgba(120, 180, 255, 0.08)' }}>
 <div
 className="w-11 h-11 rounded-xl flex items-center justify-center relative glow-cyan"
-style={{ background: 'linear-gradient(135deg, #38bdf8, #6366f1)' }}
+style={{ background: 'linear-gradient(135deg, #06b6d4, #2563eb)' }}
 >
-<Stethoscope size={20} strokeWidth={2.2} color="#001220" />
+<Stethoscope size={20} strokeWidth={2.2} color="#ffffff" />
 <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-cyan-400 pulse-soft" />
 </div>
 <div className="leading-tight">
-<div className="display-font text-lg font-semibold tracking-tight" style={{ color: '#fff' }}>
+<div className="display-font text-lg font-semibold tracking-tight" style={{ color: '#0f2942' }}>
 {t.brand}
 </div>
 <div className="text-[10.5px] uppercase tracking-widest" style={{ color: 'var(--text-3)', letterSpacing: '0.12em' }}>
@@ -1743,7 +1738,7 @@ return (
 <div
 className="top-bar sticky top-0 z-30 px-4 md:px-8 py-3 md:py-4 flex items-center justify-between gap-3 border-b"
 style={{
-background: 'linear-gradient(180deg, rgba(10, 16, 30, 0.85), rgba(10, 16, 30, 0.7))',
+background: 'linear-gradient(180deg, rgba(246, 248, 251, 0.9), rgba(246, 248, 251, 0.9))',
 backdropFilter: 'blur(16px)',
 borderColor: 'rgba(120, 180, 255, 0.08)',
 }}
@@ -1793,7 +1788,7 @@ style={{ background: 'rgba(120, 180, 255, 0.08)', border: '1px solid rgba(120, 1
       <div className="fixed inset-0 z-30" onClick={() => setShowNotif(false)} />
       <div
         className="absolute top-12 right-0 w-80 max-h-96 scroll-y glass-strong rounded-xl z-40"
-        style={{ background: 'rgba(15, 22, 40, 0.98)' }}
+        style={{ background: 'rgba(255, 255, 255, 0.98)' }}
       >
         <div className="p-3 border-b" style={{ borderColor: 'rgba(120, 180, 255, 0.08)' }}>
           <div className="text-[13px] font-bold" style={{ color: 'var(--text)' }}>{t.notifications}</div>
@@ -1898,17 +1893,17 @@ style={{ background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(167,
 />
 <div className="relative flex items-start justify-between mb-2">
 <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(56, 189, 248, 0.2)', border: '1px solid rgba(56, 189, 248, 0.4)' }}>
-<Plus size={18} color="#38bdf8" strokeWidth={2.5} />
+<Plus size={18} color="#0891b2" strokeWidth={2.5} />
 </div>
 <div 
 className="w-8 h-8 rounded-lg flex items-center justify-center"
 style={{ background: 'rgba(56, 189, 248, 0.15)' }}
 >
-<ArrowRight size={14} color="#38bdf8" />
+<ArrowRight size={14} color="#0891b2" />
 </div>
 </div>
 <div className="relative">
-<div className="text-[10.5px] uppercase font-bold tracking-widest mb-1" style={{ color: '#38bdf8', letterSpacing: '0.14em' }}>
+<div className="text-[10.5px] uppercase font-bold tracking-widest mb-1" style={{ color: '#0891b2', letterSpacing: '0.14em' }}>
 {t.addCase}
 </div>
 <div className="display-font text-base md:text-lg font-bold" style={{ color: 'var(--text)' }}>
@@ -1921,7 +1916,7 @@ style={{ background: 'rgba(56, 189, 248, 0.15)' }}
 </button>
 <KpiCard
 label={t.activeCases} value={kpis.active} sub={`${state.cases.length} ${t.overall}`}
-color="#38bdf8" icon={Briefcase}
+color="#0891b2" icon={Briefcase}
 />
 <KpiCard
 label={t.profitMargin} value={`${fmt2(kpis.margin)}%`} sub={t.healthScore}
@@ -1986,7 +1981,7 @@ color={kpis.remakeRate <= 5 ? '#34d399' : kpis.remakeRate <= 10 ? '#f5b942' : '#
     <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
       <div>
         <h3 className="display-font text-lg font-semibold flex items-center gap-2" style={{ color: 'var(--text)' }}>
-          <GitBranch size={17} color="#38bdf8" />
+          <GitBranch size={17} color="#0891b2" />
           {t.productionFlow}
         </h3>
         <p className="text-[11.5px]" style={{ color: 'var(--text-3)' }}>{t.flowDescription}</p>
@@ -2137,7 +2132,7 @@ return (
 <div className="space-y-5">
 {/* Header stats */}
 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-<MiniStat label={t.activeCases} value={activeCases.length} subLabel={lang === 'ar' ? 'قيد التنفيذ' : 'in progress'} color="#38bdf8" icon={Activity} />
+<MiniStat label={t.activeCases} value={activeCases.length} subLabel={lang === 'ar' ? 'قيد التنفيذ' : 'in progress'} color="#0891b2" icon={Activity} />
 <MiniStat
 label={t.overdue}
 value={activeCases.filter(c => { const d = daysUntil(c.deadline); return d !== null && d < 0; }).length}
@@ -2274,7 +2269,7 @@ color="#34d399" icon={Calendar}
               onClick={() => setSelectedCase(c)}
               className="rounded-lg p-3 cursor-pointer transition-all hover:translate-y-[-1px]"
               style={{
-                background: 'rgba(10, 16, 30, 0.5)',
+                background: 'rgba(241, 245, 249, 0.7)',
                 border: `1px solid ${overdue ? 'rgba(248, 113, 113, 0.35)' : urgent ? 'rgba(245, 185, 66, 0.3)' : stuck ? 'rgba(245, 185, 66, 0.2)' : 'rgba(120, 180, 255, 0.1)'}`,
               }}
             >
@@ -2889,7 +2884,7 @@ onClick={onClose}
 >
 <div
 className="glass-strong rounded-2xl w-full max-w-2xl max-h-[90vh] scroll-y"
-style={{ background: 'rgba(15, 22, 40, 0.98)' }}
+style={{ background: 'rgba(255, 255, 255, 0.98)' }}
 onClick={e => e.stopPropagation()}
 >
 {/* Header */}
@@ -2935,11 +2930,11 @@ onClick={e => e.stopPropagation()}
     </div>
 
     <div className="grid grid-cols-2 gap-2">
-      <div className="rounded-lg p-2.5" style={{ background: 'rgba(10, 16, 30, 0.5)' }}>
+      <div className="rounded-lg p-2.5" style={{ background: 'rgba(241, 245, 249, 0.7)' }}>
         <div className="text-[9px] uppercase tracking-widest" style={{ color: 'var(--text-3)' }}>{t.units}</div>
         <div className="mono text-base font-bold" style={{ color: 'var(--text)' }}>{c.units}</div>
       </div>
-      <div className="rounded-lg p-2.5" style={{ background: 'rgba(10, 16, 30, 0.5)' }}>
+      <div className="rounded-lg p-2.5" style={{ background: 'rgba(241, 245, 249, 0.7)' }}>
         <div className="text-[9px] uppercase tracking-widest" style={{ color: 'var(--text-3)' }}>{t.deadline}</div>
         <div className="mono text-base font-bold" style={{ color: overdue ? '#f87171' : 'var(--text)' }}>
           {left !== null ? (overdue ? `${Math.abs(left)}d ${lang === 'ar' ? 'متأخر' : 'late'}` : `${left} ${t.days}`) : '—'}
@@ -2952,7 +2947,7 @@ onClick={e => e.stopPropagation()}
       <div className="text-[10.5px] uppercase font-bold tracking-widest mb-1.5" style={{ color: 'var(--text-3)' }}>
         {lang === 'ar' ? 'تفاصيل الحالة' : 'Case Details'}
       </div>
-      <div className="rounded-lg p-3 space-y-2" style={{ background: 'rgba(10, 16, 30, 0.5)', border: '1px solid rgba(120, 180, 255, 0.08)' }}>
+      <div className="rounded-lg p-3 space-y-2" style={{ background: 'rgba(241, 245, 249, 0.7)', border: '1px solid rgba(120, 180, 255, 0.08)' }}>
         {[
           { label: t.type, value: t[c.type] || c.type || '—' },
           { label: t.material, value: materialName },
@@ -2984,7 +2979,7 @@ onClick={e => e.stopPropagation()}
         </div>
         <div className="flex flex-wrap gap-1.5">
           {c.teeth.map(n => (
-            <span key={n} className="mono text-[11px] font-bold px-2 py-1 rounded-md" style={{ background: 'rgba(56, 189, 248, 0.12)', border: '1px solid rgba(56, 189, 248, 0.25)', color: '#38bdf8' }}>{n}</span>
+            <span key={n} className="mono text-[11px] font-bold px-2 py-1 rounded-md" style={{ background: 'rgba(56, 189, 248, 0.12)', border: '1px solid rgba(56, 189, 248, 0.25)', color: '#0891b2' }}>{n}</span>
           ))}
         </div>
       </div>
@@ -2996,7 +2991,7 @@ onClick={e => e.stopPropagation()}
         <div className="text-[10.5px] uppercase font-bold tracking-widest mb-1.5" style={{ color: 'var(--text-3)' }}>
           {t.notesField || (lang === 'ar' ? 'ملاحظات' : 'Notes')}
         </div>
-        <div className="rounded-lg p-3 text-[12px]" style={{ background: 'rgba(10, 16, 30, 0.5)', border: '1px solid rgba(120, 180, 255, 0.08)', color: 'var(--text-2)' }}>
+        <div className="rounded-lg p-3 text-[12px]" style={{ background: 'rgba(241, 245, 249, 0.7)', border: '1px solid rgba(120, 180, 255, 0.08)', color: 'var(--text-2)' }}>
           {c.notes}
         </div>
       </div>
@@ -3041,7 +3036,7 @@ onClick={e => e.stopPropagation()}
     <History size={11} className="inline mr-1" />
     {t.timeline}
   </div>
-  <div className="rounded-xl p-3" style={{ background: 'rgba(10, 16, 30, 0.5)', border: '1px solid rgba(120, 180, 255, 0.08)' }}>
+  <div className="rounded-xl p-3" style={{ background: 'rgba(241, 245, 249, 0.7)', border: '1px solid rgba(120, 180, 255, 0.08)' }}>
     {(c.roomHistory && c.roomHistory.length > 0) ? c.roomHistory.map((h, i) => {
       const r = ROOM_MAP[h.room];
       if (!r) return null;
@@ -3244,10 +3239,10 @@ return (
             showToast('success', `${lang === 'ar' ? 'مرحباً' : 'Welcome'} ${getName(tech)}`);
           }}
           className="rounded-xl p-3 flex items-center gap-3 transition-all data-card text-start"
-          style={{ background: 'rgba(10, 16, 30, 0.5)', border: '1px solid rgba(120, 180, 255, 0.1)' }}
+          style={{ background: 'rgba(241, 245, 249, 0.7)', border: '1px solid rgba(120, 180, 255, 0.1)' }}
         >
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #38bdf8, #a78bfa)' }}>
-            <span className="text-base font-bold" style={{ color: '#001220' }}>{getName(tech).charAt(0).toUpperCase()}</span>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #06b6d4, #2563eb)' }}>
+            <span className="text-base font-bold" style={{ color: '#ffffff' }}>{getName(tech).charAt(0).toUpperCase()}</span>
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-[13px] font-bold truncate" style={{ color: 'var(--text)' }}>{getName(tech)}</div>
@@ -3275,8 +3270,8 @@ return (
 <div className="space-y-5 max-w-2xl mx-auto">
 {/* Active tech header */}
 <div className="glass rounded-2xl p-4 flex items-center gap-3">
-<div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #38bdf8, #a78bfa)' }}>
-<span className="text-base font-bold" style={{ color: '#001220' }}>{getName(activeTech).charAt(0).toUpperCase()}</span>
+<div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #06b6d4, #2563eb)' }}>
+<span className="text-base font-bold" style={{ color: '#ffffff' }}>{getName(activeTech).charAt(0).toUpperCase()}</span>
 </div>
 <div className="flex-1 min-w-0">
 <div className="text-[10.5px] uppercase font-bold tracking-widest" style={{ color: 'var(--text-3)' }}>
@@ -3314,7 +3309,7 @@ className="btn btn-ghost"
   {!scanning && (
     <div className="text-center p-6">
       <div className="w-16 h-16 rounded-2xl mx-auto mb-3 flex items-center justify-center" style={{ background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.25)' }}>
-        <Camera size={26} color="#38bdf8" />
+        <Camera size={26} color="#0891b2" />
       </div>
       <div className="text-[14px] font-bold mb-1" style={{ color: 'var(--text)' }}>
         {t.scanInstructions}
@@ -3334,20 +3329,20 @@ className="btn btn-ghost"
           {[{t:0,l:0,r:0,b:'auto'}, {t:0,r:0,l:'auto',b:'auto'}, {b:0,l:0,t:'auto',r:'auto'}, {b:0,r:0,t:'auto',l:'auto'}].map((pos, i) => (
             <div key={i} className="absolute w-8 h-8" style={{
               top: pos.t, bottom: pos.b, left: pos.l, right: pos.r,
-              borderTop: pos.t === 0 ? '3px solid #38bdf8' : 'none',
-              borderBottom: pos.b === 0 ? '3px solid #38bdf8' : 'none',
-              borderLeft: pos.l === 0 ? '3px solid #38bdf8' : 'none',
-              borderRight: pos.r === 0 ? '3px solid #38bdf8' : 'none',
+              borderTop: pos.t === 0 ? '3px solid #0891b2' : 'none',
+              borderBottom: pos.b === 0 ? '3px solid #0891b2' : 'none',
+              borderLeft: pos.l === 0 ? '3px solid #0891b2' : 'none',
+              borderRight: pos.r === 0 ? '3px solid #0891b2' : 'none',
             }} />
           ))}
           {/* Scan line */}
           <div
             className="absolute left-0 right-0 h-0.5 scan-line"
-            style={{ background: 'linear-gradient(90deg, transparent, #38bdf8, transparent)', boxShadow: '0 0 12px #38bdf8' }}
+            style={{ background: 'linear-gradient(90deg, transparent, #0891b2, transparent)', boxShadow: '0 0 12px #0891b2' }}
           />
         </div>
       </div>
-      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full text-[11px] font-semibold" style={{ background: 'rgba(0, 0, 0, 0.7)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
+      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full text-[11px] font-semibold" style={{ background: 'rgba(0, 0, 0, 0.7)', color: '#0891b2', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
         <span className="inline-block w-1.5 h-1.5 rounded-full bg-cyan-400 pulse-soft mr-1.5" />
         {lang === 'ar' ? 'جاري المسح...' : 'Scanning...'}
       </div>
@@ -3457,7 +3452,7 @@ background: lastScanned.success ? 'rgba(52, 211, 153, 0.15)' : 'rgba(248, 113, 1
     </div>
     <div className="space-y-1.5">
       {state.cases.filter(c => c.currentRoom === activeTech.room && c.status !== 'delivered').slice(0, 5).map(c => (
-        <div key={c.id} className="flex items-center justify-between p-2 rounded-lg" style={{ background: 'rgba(10, 16, 30, 0.5)' }}>
+        <div key={c.id} className="flex items-center justify-between p-2 rounded-lg" style={{ background: 'rgba(241, 245, 249, 0.7)' }}>
           <div className="min-w-0">
             <div className="mono text-[11px] font-bold" style={{ color: 'var(--text-3)' }}>{c.caseId}</div>
             <div className="text-[12px] font-semibold truncate" style={{ color: 'var(--text)' }}>{c.patient}</div>
@@ -3508,7 +3503,7 @@ return (
         {lang === 'ar' ? 'لا توجد عناصر' : 'No items yet'}
       </div>
     ) : items.map(item => (
-      <div key={item.id} className="rounded-lg p-2 flex items-center gap-2" style={{ background: 'rgba(10, 16, 30, 0.5)', border: '1px solid rgba(120, 180, 255, 0.06)' }}>
+      <div key={item.id} className="rounded-lg p-2 flex items-center gap-2" style={{ background: 'rgba(241, 245, 249, 0.7)', border: '1px solid rgba(120, 180, 255, 0.06)' }}>
         <input
           className="themed flex-1"
           value={getName(item)}
@@ -3609,11 +3604,11 @@ style={{
 width: 36,
 height: 44,
 borderRadius: 6,
-border: isSelected ? '2px solid #38bdf8' : '1px solid rgba(120, 180, 255, 0.15)',
+border: isSelected ? '2px solid #0891b2' : '1px solid rgba(120, 180, 255, 0.15)',
 background: isSelected
 ? 'linear-gradient(135deg, rgba(56, 189, 248, 0.3), rgba(56, 189, 248, 0.15))'
-: 'rgba(15, 22, 40, 0.4)',
-color: isSelected ? '#38bdf8' : 'var(--text-2)',
+: 'rgba(241, 245, 249, 0.7)',
+color: isSelected ? '#0891b2' : 'var(--text-2)',
 fontSize: 11,
 fontFamily: 'monospace',
 fontWeight: 700,
@@ -3635,9 +3630,9 @@ return (
 {/* Header with counter */}
 <div className="flex items-center justify-between">
 <div className="flex items-center gap-2">
-<Smile size={14} color="#38bdf8" />
+<Smile size={14} color="#0891b2" />
 <span className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-2)' }}>
-{t.selectedTeeth}: <span className="mono" style={{ color: '#38bdf8' }}>{selectedTeeth.length}</span>
+{t.selectedTeeth}: <span className="mono" style={{ color: '#0891b2' }}>{selectedTeeth.length}</span>
 </span>
 </div>
 {selectedTeeth.length > 0 && (
@@ -3658,7 +3653,7 @@ style={{ background: 'rgba(248, 113, 113, 0.1)', color: '#f87171', border: '1px 
     <div className="text-[10.5px] uppercase tracking-widest font-semibold mb-2 text-center" style={{ color: 'var(--text-3)' }}>
       {t.upperJaw}
     </div>
-    <div className="flex items-center justify-center gap-3 p-3 rounded-lg" style={{ background: 'rgba(10, 16, 30, 0.4)', border: '1px solid rgba(120, 180, 255, 0.08)' }}>
+    <div className="flex items-center justify-center gap-3 p-3 rounded-lg" style={{ background: 'rgba(241, 245, 249, 0.7)', border: '1px solid rgba(120, 180, 255, 0.08)' }}>
       <div className="flex gap-1">
         {upperRight.map(n => <ToothButton key={n} num={n} />)}
       </div>
@@ -3671,7 +3666,7 @@ style={{ background: 'rgba(248, 113, 113, 0.1)', color: '#f87171', border: '1px 
 
   {/* Lower Jaw */}
   <div>
-    <div className="flex items-center justify-center gap-3 p-3 rounded-lg" style={{ background: 'rgba(10, 16, 30, 0.4)', border: '1px solid rgba(120, 180, 255, 0.08)' }}>
+    <div className="flex items-center justify-center gap-3 p-3 rounded-lg" style={{ background: 'rgba(241, 245, 249, 0.7)', border: '1px solid rgba(120, 180, 255, 0.08)' }}>
       <div className="flex gap-1">
         {lowerRight.map(n => <ToothButton key={n} num={n} />)}
       </div>
@@ -3691,7 +3686,7 @@ style={{ background: 'rgba(248, 113, 113, 0.1)', color: '#f87171', border: '1px 
       <div className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'var(--text-3)' }}>
         {t.selectedTeeth}:
       </div>
-      <div className="font-mono text-xs" style={{ color: '#38bdf8' }}>
+      <div className="font-mono text-xs" style={{ color: '#0891b2' }}>
         {selectedTeeth.join(', ')}
       </div>
     </div>
@@ -3836,7 +3831,7 @@ onClose();
 const Checkbox = ({ checked, onChange, label, color = '#34d399' }) => (
 <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg transition"
 style={{
-background: checked ? `${color}10` : 'rgba(15, 22, 40, 0.3)',
+background: checked ? `${color}10` : 'rgba(241, 245, 249, 0.6)',
 border: `1px solid ${checked ? color + '30' : 'rgba(120, 180, 255, 0.08)'}`
 }}>
 <div
@@ -3862,7 +3857,7 @@ type="button"
 onClick={() => update('material', value)}
 className="p-3 rounded-lg flex flex-col items-center gap-2 transition"
 style={{
-background: active ? `${color}15` : 'rgba(15, 22, 40, 0.3)',
+background: active ? `${color}15` : 'rgba(241, 245, 249, 0.6)',
 border: `1px solid ${active ? color + '40' : 'rgba(120, 180, 255, 0.1)'}`,
 boxShadow: active ? `0 0 16px ${color}30` : 'none',
 }}
@@ -3885,7 +3880,7 @@ type="button"
 onClick={() => update('typeOfWork', value === 'implant' ? 'implant' : value)}
 className="p-2.5 rounded-lg flex flex-col items-center gap-1.5 transition flex-1"
 style={{
-background: active ? `${color}15` : 'rgba(15, 22, 40, 0.3)',
+background: active ? `${color}15` : 'rgba(241, 245, 249, 0.6)',
 border: `1px solid ${active ? color + '40' : 'rgba(120, 180, 255, 0.1)'}`,
 }}
 >
@@ -3905,7 +3900,7 @@ onClick={onClose}
 >
 <div
 className="glass-strong rounded-2xl w-full max-w-4xl my-4"
-style={{ background: 'rgba(15, 22, 40, 0.97)', border: '1px solid rgba(120, 180, 255, 0.2)' }}
+style={{ background: 'rgba(255, 255, 255, 0.98)', border: '1px solid rgba(120, 180, 255, 0.2)' }}
 onClick={e => e.stopPropagation()}
 >
 {/* Header */}
@@ -3919,7 +3914,7 @@ backdropFilter: 'blur(10px)',
 >
 <div className="flex items-center gap-3">
 <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(56, 189, 248, 0.15)', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
-<FileText size={18} color="#38bdf8" />
+<FileText size={18} color="#0891b2" />
 </div>
 <div>
 <h2 className="text-base font-bold" style={{ color: 'var(--text)' }}>{t.caseIntakeTitle}</h2>
@@ -3936,7 +3931,7 @@ backdropFilter: 'blur(10px)',
       
       {/* SECTION 1: Basic Info */}
       <section>
-        <SectionHeader icon={User} color="#38bdf8" title={t.basicInfo} />
+        <SectionHeader icon={User} color="#0891b2" title={t.basicInfo} />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Field label={t.doctorName} value={form.doctorName} onChange={v => update('doctorName', v)} />
           <Field label={t.patientName} value={form.patient} onChange={v => update('patient', v)} />
@@ -3953,7 +3948,7 @@ backdropFilter: 'blur(10px)',
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
           <MatOption value="zirconia" label={t.zirconiaTitle} icon={Smile} color="#f472b6" />
           <MatOption value="emax" label={t.emaxTitle} icon={Crown} color="#a78bfa" />
-          <MatOption value="emaxCad" label={t.emaxCadTitle} icon={Cpu} color="#38bdf8" />
+          <MatOption value="emaxCad" label={t.emaxCadTitle} icon={Cpu} color="#0891b2" />
           <MatOption value="pmma" label={t.pmmaTitle} icon={Layers} color="#fb923c" />
           <MatOption value="acrylic" label={t.acrylicTitle} icon={Package} color="#34d399" />
         </div>
@@ -3986,7 +3981,7 @@ backdropFilter: 'blur(10px)',
                   onClick={() => { update('implantType', opt.v); update('isImplant', true); }}
                   className="px-3 py-1.5 rounded text-[11px] font-semibold"
                   style={{
-                    background: form.implantType === opt.v ? 'rgba(248, 113, 113, 0.15)' : 'rgba(15, 22, 40, 0.5)',
+                    background: form.implantType === opt.v ? 'rgba(248, 113, 113, 0.15)' : 'rgba(241, 245, 249, 0.7)',
                     border: `1px solid ${form.implantType === opt.v ? 'rgba(248, 113, 113, 0.4)' : 'rgba(120, 180, 255, 0.1)'}`,
                     color: form.implantType === opt.v ? '#f87171' : 'var(--text-2)',
                   }}
@@ -4011,7 +4006,7 @@ backdropFilter: 'blur(10px)',
                     onClick={() => update('retention', opt.v)}
                     className="px-3 py-1.5 rounded text-[11px] font-semibold flex-1"
                     style={{
-                      background: form.retention === opt.v ? 'rgba(248, 113, 113, 0.15)' : 'rgba(15, 22, 40, 0.5)',
+                      background: form.retention === opt.v ? 'rgba(248, 113, 113, 0.15)' : 'rgba(241, 245, 249, 0.7)',
                       border: `1px solid ${form.retention === opt.v ? 'rgba(248, 113, 113, 0.4)' : 'rgba(120, 180, 255, 0.1)'}`,
                       color: form.retention === opt.v ? '#f87171' : 'var(--text-2)',
                     }}
@@ -4045,7 +4040,7 @@ backdropFilter: 'blur(10px)',
             onClick={() => update('intakeStatus', 'complete')}
             className="p-3 rounded-lg flex items-center gap-2 transition"
             style={{
-              background: form.intakeStatus === 'complete' ? 'rgba(52, 211, 153, 0.15)' : 'rgba(15, 22, 40, 0.3)',
+              background: form.intakeStatus === 'complete' ? 'rgba(52, 211, 153, 0.15)' : 'rgba(241, 245, 249, 0.6)',
               border: `1.5px solid ${form.intakeStatus === 'complete' ? '#34d399' : 'rgba(120, 180, 255, 0.1)'}`,
             }}
           >
@@ -4059,7 +4054,7 @@ backdropFilter: 'blur(10px)',
             onClick={() => update('intakeStatus', 'incomplete')}
             className="p-3 rounded-lg flex items-center gap-2 transition"
             style={{
-              background: form.intakeStatus === 'incomplete' ? 'rgba(248, 113, 113, 0.15)' : 'rgba(15, 22, 40, 0.3)',
+              background: form.intakeStatus === 'incomplete' ? 'rgba(248, 113, 113, 0.15)' : 'rgba(241, 245, 249, 0.6)',
               border: `1.5px solid ${form.intakeStatus === 'incomplete' ? '#f87171' : 'rgba(120, 180, 255, 0.1)'}`,
             }}
           >
@@ -4126,7 +4121,7 @@ backdropFilter: 'blur(10px)',
 
       {/* SECTION 10: Intake Technician & Notes */}
       <section>
-        <SectionHeader icon={UserCog} color="#38bdf8" title={t.intakeTechnician} />
+        <SectionHeader icon={UserCog} color="#0891b2" title={t.intakeTechnician} />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {/* Technician dropdown - reads from state.technicians */}
           <div>
@@ -4163,7 +4158,7 @@ backdropFilter: 'blur(10px)',
       className="sticky bottom-0 px-6 py-4 flex items-center justify-end gap-3 border-t"
       style={{ 
         borderColor: 'rgba(120, 180, 255, 0.15)',
-        background: 'rgba(10, 16, 30, 0.95)',
+        background: 'rgba(255, 255, 255, 0.98)',
         backdropFilter: 'blur(10px)',
       }}
     >
@@ -4207,7 +4202,7 @@ function Field({ label, value, onChange, type = 'text', placeholder = '', mono =
 return (
 <div>
 <label className="block text-[10.5px] uppercase tracking-wider font-semibold mb-1" style={{ color: 'var(--text-3)' }}>
-{label} {hint && <span style={{ color: '#38bdf8' }}>{hint}</span>}
+{label} {hint && <span style={{ color: '#0891b2' }}>{hint}</span>}
 </label>
 {multiline ? (
 <textarea
@@ -4248,7 +4243,7 @@ denture: Smile, pmma: Layers, ortho: Wrench, cadcam: Cpu
 };
 
 const statusColors = {
-pending: '#f5b942', inProgress: '#38bdf8', completed: '#a78bfa', delivered: '#34d399'
+pending: '#f5b942', inProgress: '#0891b2', completed: '#a78bfa', delivered: '#34d399'
 };
 
 const filtered = state.cases.filter(c => {
@@ -4348,7 +4343,7 @@ className={`tab-btn ${filter === s ? 'active' : ''} whitespace-nowrap`}
         </div>
 
         <div className="grid grid-cols-3 gap-2 mb-3">
-          <div className="text-center p-2 rounded-lg" style={{ background: 'rgba(10, 16, 30, 0.5)' }}>
+          <div className="text-center p-2 rounded-lg" style={{ background: 'rgba(241, 245, 249, 0.7)' }}>
             <div className="text-[9px] uppercase tracking-widest" style={{ color: 'var(--text-3)' }}>{t.units}</div>
             <div className="mono text-sm font-bold" style={{ color: 'var(--text)' }}>{c.units}</div>
           </div>
@@ -4463,8 +4458,8 @@ const lowCount = state.inventory.filter(i => i.stock <= i.reorderAt).length;
 const totalValue = state.inventory.reduce((s, i) => s + i.stock * i.unitPrice, 0);
 
 const categoryColors = {
-zirconia: '#38bdf8', emax: '#a78bfa', implant: '#f5b942',
-pmma: '#22d3ee', consumable: '#34d399', tool: '#f472b6'
+zirconia: '#0891b2', emax: '#a78bfa', implant: '#f5b942',
+pmma: '#06b6d4', consumable: '#34d399', tool: '#f472b6'
 };
 
 const handleAdd = () => {
@@ -4478,7 +4473,7 @@ return (
 
 <div className="space-y-5">
 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-<MiniStat label={lang === 'ar' ? 'إجمالي المواد' : 'Total Items'} value={state.inventory.length} subLabel={lang === 'ar' ? 'عنصر' : 'items'} color="#38bdf8" icon={Boxes} />
+<MiniStat label={lang === 'ar' ? 'إجمالي المواد' : 'Total Items'} value={state.inventory.length} subLabel={lang === 'ar' ? 'عنصر' : 'items'} color="#0891b2" icon={Boxes} />
 <MiniStat label={lang === 'ar' ? 'قيمة المخزون' : 'Stock Value'} value={fmt(totalValue)} subLabel="KD" color="#34d399" icon={DollarSign} />
 <MiniStat label={lang === 'ar' ? 'مخزون منخفض' : 'Low Stock'} value={lowCount} subLabel={lang === 'ar' ? 'يحتاج طلب' : 'need reorder'} color={lowCount > 0 ? '#f87171' : '#34d399'} icon={AlertTriangle} />
 <MiniStat label={lang === 'ar' ? 'الموردون' : 'Suppliers'} value={new Set(state.inventory.map(i => i.supplier)).size} subLabel={lang === 'ar' ? 'فريد' : 'unique'} color="#a78bfa" icon={Users} />
@@ -4507,7 +4502,7 @@ return (
     <div className="overflow-x-auto scroll-y">
       <table className="w-full" style={{ fontSize: 12.5 }}>
         <thead>
-          <tr style={{ background: 'rgba(10, 16, 30, 0.5)' }}>
+          <tr style={{ background: 'rgba(241, 245, 249, 0.7)' }}>
             <th className="px-4 py-3 text-[10.5px] uppercase font-bold tracking-widest text-start" style={{ color: 'var(--text-3)', letterSpacing: '0.1em' }}>
               {lang === 'ar' ? 'الصنف' : 'Item'}
             </th>
@@ -4614,7 +4609,7 @@ return (
 
 <div className="space-y-5">
 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-<MiniStat label={lang === 'ar' ? 'إجمالي الفنيين' : 'Total Techs'} value={state.technicians.length} subLabel={lang === 'ar' ? 'موظف' : 'staff'} color="#38bdf8" icon={Users} />
+<MiniStat label={lang === 'ar' ? 'إجمالي الفنيين' : 'Total Techs'} value={state.technicians.length} subLabel={lang === 'ar' ? 'موظف' : 'staff'} color="#0891b2" icon={Users} />
 <MiniStat label={lang === 'ar' ? 'إجمالي الرواتب' : 'Total Payroll'} value={fmt(totalSalary)} subLabel={`KD ${t.perMonth}`} color="#f5b942" icon={DollarSign} />
 <MiniStat label={lang === 'ar' ? 'الإنتاج الإجمالي' : 'Total Output'} value={fmt(totalOutput)} subLabel={`${t.units_short}/${t.perMonth}`} color="#34d399" icon={Activity} />
 <MiniStat label={lang === 'ar' ? 'متوسط الكفاءة' : 'Avg Efficiency'} value={`${fmt2(avgEfficiency)}%`} subLabel="" color="#a78bfa" icon={TrendingUp} />
@@ -4635,9 +4630,9 @@ return (
           <div className="flex items-start gap-3 mb-4">
             <div
               className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 relative"
-              style={{ background: 'linear-gradient(135deg, #38bdf8, #a78bfa)' }}
+              style={{ background: 'linear-gradient(135deg, #06b6d4, #2563eb)' }}
             >
-              <span className="text-lg font-bold" style={{ color: '#001220' }}>
+              <span className="text-lg font-bold" style={{ color: '#ffffff' }}>
                 {getName(tech).charAt(0).toUpperCase()}
               </span>
               {tech.efficiency >= 95 && (
@@ -4707,7 +4702,7 @@ return (
       </div>
 
       <div className="grid grid-cols-3 gap-2 mb-3">
-        <div className="rounded-lg p-2.5 text-center" style={{ background: 'rgba(10, 16, 30, 0.5)' }}>
+        <div className="rounded-lg p-2.5 text-center" style={{ background: 'rgba(241, 245, 249, 0.7)' }}>
           <div className="text-[9px] uppercase tracking-widest mb-0.5" style={{ color: 'var(--text-3)' }}>{t.salary}</div>
           <input
             type="number" className="themed mono w-full"
@@ -4716,7 +4711,7 @@ return (
             onChange={e => setField('technicians', tech.id, 'salary', e.target.value)}
           />
         </div>
-        <div className="rounded-lg p-2.5 text-center" style={{ background: 'rgba(10, 16, 30, 0.5)' }}>
+        <div className="rounded-lg p-2.5 text-center" style={{ background: 'rgba(241, 245, 249, 0.7)' }}>
           <div className="text-[9px] uppercase tracking-widest mb-0.5" style={{ color: 'var(--text-3)' }}>{t.monthlyOutput}</div>
           <input
             type="number" className="themed mono w-full"
@@ -4725,7 +4720,7 @@ return (
             onChange={e => setField('technicians', tech.id, 'monthlyOutput', e.target.value)}
           />
         </div>
-        <div className="rounded-lg p-2.5 text-center" style={{ background: 'rgba(10, 16, 30, 0.5)' }}>
+        <div className="rounded-lg p-2.5 text-center" style={{ background: 'rgba(241, 245, 249, 0.7)' }}>
           <div className="text-[9px] uppercase tracking-widest mb-0.5" style={{ color: 'var(--text-3)' }}>{t.efficiency}</div>
           <input
             type="number" className="themed mono w-full"
@@ -4809,8 +4804,8 @@ return (
         </div>
         <div className="space-y-2">
           {state.currencies.filter(c => c.code !== 'KD').map(c => (
-            <div key={c.code} className="flex items-center gap-2 p-2 rounded-lg" style={{ background: 'rgba(15, 22, 40, 0.4)', border: '1px solid rgba(120, 180, 255, 0.08)' }}>
-              <div className="w-12 mono font-bold text-[12px]" style={{ color: '#38bdf8' }}>{c.code}</div>
+            <div key={c.code} className="flex items-center gap-2 p-2 rounded-lg" style={{ background: 'rgba(241, 245, 249, 0.7)', border: '1px solid rgba(120, 180, 255, 0.08)' }}>
+              <div className="w-12 mono font-bold text-[12px]" style={{ color: '#0891b2' }}>{c.code}</div>
               <div className="flex-1 text-[11px]" style={{ color: 'var(--text-2)' }}>{lang === 'ar' ? c.name_ar : c.name_en}</div>
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px]" style={{ color: 'var(--text-3)' }}>= 1 KD ×</span>
@@ -4842,7 +4837,7 @@ return (
     </div>
     <div className="p-4 space-y-3">
       {/* Toggle */}
-      <div className="flex items-center justify-between p-3 rounded-lg" style={{ background: 'rgba(15, 22, 40, 0.4)', border: '1px solid rgba(120, 180, 255, 0.08)' }}>
+      <div className="flex items-center justify-between p-3 rounded-lg" style={{ background: 'rgba(241, 245, 249, 0.7)', border: '1px solid rgba(120, 180, 255, 0.08)' }}>
         <div>
           <div className="text-[12px] font-semibold" style={{ color: 'var(--text)' }}>{t.vatEnabled}</div>
           <div className="text-[10px]" style={{ color: 'var(--text-3)' }}>
@@ -4890,7 +4885,7 @@ return (
                 disabled={!state.vatEnabled}
                 className="px-2 py-1 rounded text-[10px] font-bold mono transition"
                 style={{
-                  background: state.vatDefaultRate === rate ? 'rgba(167, 139, 250, 0.2)' : 'rgba(15, 22, 40, 0.4)',
+                  background: state.vatDefaultRate === rate ? 'rgba(167, 139, 250, 0.2)' : 'rgba(241, 245, 249, 0.7)',
                   color: state.vatDefaultRate === rate ? '#a78bfa' : 'var(--text-3)',
                   border: `1px solid ${state.vatDefaultRate === rate ? 'rgba(167, 139, 250, 0.4)' : 'rgba(120, 180, 255, 0.1)'}`,
                   opacity: state.vatEnabled ? 1 : 0.5,
@@ -5180,7 +5175,7 @@ return (
 </div>
 <div className="grid grid-cols-3 gap-2">
 {[
-{ id: 'monthly', label: t.monthlyReport, icon: Calendar, color: '#38bdf8' },
+{ id: 'monthly', label: t.monthlyReport, icon: Calendar, color: '#0891b2' },
 { id: 'clinic', label: t.clinicReport, icon: Stethoscope, color: '#a78bfa' },
 { id: 'all', label: t.allInvoicesReport, icon: FileText, color: '#34d399' },
 ].map(r => {
@@ -5192,7 +5187,7 @@ key={r.id}
 onClick={() => setReportType(r.id)}
 className="p-3 rounded-lg flex flex-col items-center gap-1.5 transition"
 style={{
-background: active ? `${r.color}15` : 'rgba(15, 22, 40, 0.4)',
+background: active ? `${r.color}15` : 'rgba(241, 245, 249, 0.7)',
 border: `1px solid ${active ? r.color + '40' : 'rgba(120, 180, 255, 0.1)'}`,
 boxShadow: active ? `0 0 16px ${r.color}25` : 'none',
 }}
@@ -5256,11 +5251,11 @@ boxShadow: active ? `0 0 16px ${r.color}25` : 'none',
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
       <div className="glass rounded-lg p-3" style={{ background: 'rgba(56, 189, 248, 0.06)', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
         <div className="text-[9px] uppercase tracking-wider" style={{ color: 'var(--text-3)' }}>{t.totalInvoicesInPeriod}</div>
-        <div className="mono font-bold text-lg" style={{ color: '#38bdf8' }}>{summary.count}</div>
+        <div className="mono font-bold text-lg" style={{ color: '#0891b2' }}>{summary.count}</div>
       </div>
       <div className="glass rounded-lg p-3" style={{ background: 'rgba(56, 189, 248, 0.06)', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
         <div className="text-[9px] uppercase tracking-wider" style={{ color: 'var(--text-3)' }}>{t.periodRevenue}</div>
-        <div className="mono font-bold text-lg" style={{ color: '#38bdf8' }}>{fmt2(summary.total)} KD</div>
+        <div className="mono font-bold text-lg" style={{ color: '#0891b2' }}>{fmt2(summary.total)} KD</div>
       </div>
       <div className="glass rounded-lg p-3" style={{ background: 'rgba(52, 211, 153, 0.06)', border: '1px solid rgba(52, 211, 153, 0.2)' }}>
         <div className="text-[9px] uppercase tracking-wider" style={{ color: 'var(--text-3)' }}>{t.periodCollected}</div>
@@ -5318,7 +5313,7 @@ boxShadow: active ? `0 0 16px ${r.color}25` : 'none',
         {filteredInvoices.map(inv => (
           <div key={inv.id} className="px-4 py-2 flex items-center justify-between gap-2 text-[11px]">
             <div className="flex-1 min-w-0">
-              <span className="mono font-bold" style={{ color: '#38bdf8' }}>{inv.invoiceNumber}</span>
+              <span className="mono font-bold" style={{ color: '#0891b2' }}>{inv.invoiceNumber}</span>
               <span className="mx-2" style={{ color: 'var(--text-3)' }}>·</span>
               <span style={{ color: 'var(--text)' }}>{inv.clinic || '—'}</span>
             </div>
@@ -5470,7 +5465,7 @@ return Object.values(buckets).sort((a, b) => a.month.localeCompare(b.month)).sli
 // ─── Status helpers ───
 const statusColor = (status) => {
 const map = {
-paid: '#34d399', sent: '#38bdf8', partial: '#a78bfa',
+paid: '#34d399', sent: '#0891b2', partial: '#a78bfa',
 overdue: '#f87171', draft: '#94a3b8', cancelled: '#64748b'
 };
 return map[status] || '#94a3b8';
@@ -5604,8 +5599,8 @@ return (
 </div>
 <div className="flex items-center gap-2 flex-wrap">
 <div className="glass rounded-lg flex p-0.5">
-<button onClick={() => setTimeFilter('all')} className="px-3 py-1.5 rounded-md text-[11px] font-semibold transition" style={{ background: timeFilter === 'all' ? 'rgba(56, 189, 248, 0.2)' : 'transparent', color: timeFilter === 'all' ? '#38bdf8' : 'var(--text-2)' }}>{t.allTime}</button>
-<button onClick={() => setTimeFilter('month')} className="px-3 py-1.5 rounded-md text-[11px] font-semibold transition" style={{ background: timeFilter === 'month' ? 'rgba(56, 189, 248, 0.2)' : 'transparent', color: timeFilter === 'month' ? '#38bdf8' : 'var(--text-2)' }}>{t.thisMonth}</button>
+<button onClick={() => setTimeFilter('all')} className="px-3 py-1.5 rounded-md text-[11px] font-semibold transition" style={{ background: timeFilter === 'all' ? 'rgba(56, 189, 248, 0.2)' : 'transparent', color: timeFilter === 'all' ? '#0891b2' : 'var(--text-2)' }}>{t.allTime}</button>
+<button onClick={() => setTimeFilter('month')} className="px-3 py-1.5 rounded-md text-[11px] font-semibold transition" style={{ background: timeFilter === 'month' ? 'rgba(56, 189, 248, 0.2)' : 'transparent', color: timeFilter === 'month' ? '#0891b2' : 'var(--text-2)' }}>{t.thisMonth}</button>
 </div>
 </div>
 </div>
@@ -5615,7 +5610,7 @@ return (
     <KpiCard label={t.totalIncome} value={metrics.totalCollected} sub={`${metrics.invoicesInPeriod.length} ${lang === 'ar' ? 'فاتورة' : 'invoices'}`} icon={TrendingUp} color="#34d399" />
     <KpiCard label={t.outstanding} value={metrics.totalOutstanding} sub={metrics.overdueAmount > 0 ? `⚠️ ${fmt2(metrics.overdueAmount)} ${t.overdueStatus}` : ''} icon={Clock} color="#f5b942" />
     <KpiCard label={t.totalExpenses} value={metrics.totalExpenses} sub={lang === 'ar' ? `متغيرة: ${fmt2(metrics.totalVarExpenses)}` : `Var: ${fmt2(metrics.totalVarExpenses)}`} icon={TrendingDown} color="#f87171" />
-    <KpiCard label={t.netProfit} value={metrics.netProfit} sub={metrics.netProfit >= 0 ? (lang === 'ar' ? 'ربح' : 'Profit') : (lang === 'ar' ? 'خسارة' : 'Loss')} icon={DollarSign} color="#38bdf8" isProfit />
+    <KpiCard label={t.netProfit} value={metrics.netProfit} sub={metrics.netProfit >= 0 ? (lang === 'ar' ? 'ربح' : 'Profit') : (lang === 'ar' ? 'خسارة' : 'Loss')} icon={DollarSign} color="#0891b2" isProfit />
   </div>
 
   {/* Tabs */}
@@ -5632,7 +5627,7 @@ return (
       const Icon = tab.icon;
       const active = activeTab === tab.id;
       return (
-        <button key={tab.id} onClick={() => setActiveTab(tab.id)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-[11.5px] font-semibold transition whitespace-nowrap" style={{ background: active ? 'rgba(56, 189, 248, 0.15)' : 'transparent', color: active ? '#38bdf8' : 'var(--text-2)', border: `1px solid ${active ? 'rgba(56, 189, 248, 0.3)' : 'transparent'}` }}>
+        <button key={tab.id} onClick={() => setActiveTab(tab.id)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-[11.5px] font-semibold transition whitespace-nowrap" style={{ background: active ? 'rgba(56, 189, 248, 0.15)' : 'transparent', color: active ? '#0891b2' : 'var(--text-2)', border: `1px solid ${active ? 'rgba(56, 189, 248, 0.3)' : 'transparent'}` }}>
           <Icon size={13} /> {tab.label}
         </button>
       );
@@ -5645,7 +5640,7 @@ return (
       {/* Cash Flow Chart */}
       <div className="lg:col-span-2 glass rounded-xl p-4">
         <div className="flex items-center gap-2 mb-3 pb-2 border-b" style={{ borderColor: 'rgba(120, 180, 255, 0.1)' }}>
-          <TrendingUp size={14} color="#38bdf8" />
+          <TrendingUp size={14} color="#0891b2" />
           <span className="text-[11.5px] font-bold uppercase tracking-wider" style={{ color: 'var(--text)' }}>{t.cashFlow}</span>
         </div>
         {cashFlowData.length === 0 ? (
@@ -5665,7 +5660,7 @@ return (
               </defs>
               <XAxis dataKey="month" stroke="#64748b" style={{ fontSize: 10 }} />
               <YAxis stroke="#64748b" style={{ fontSize: 10 }} />
-              <Tooltip contentStyle={{ background: 'rgba(15, 22, 40, 0.95)', border: '1px solid rgba(120, 180, 255, 0.2)', borderRadius: 8 }} />
+              <Tooltip contentStyle={{ background: 'rgba(255, 255, 255, 0.98)', border: '1px solid rgba(120, 180, 255, 0.2)', borderRadius: 8 }} />
               <Area type="monotone" dataKey="income" stroke="#34d399" strokeWidth={2} fill="url(#colorIncome)" name={lang === 'ar' ? 'إيرادات' : 'Income'} />
               <Area type="monotone" dataKey="expenses" stroke="#f87171" strokeWidth={2} fill="url(#colorExp)" name={lang === 'ar' ? 'مصاريف' : 'Expenses'} />
             </AreaChart>
@@ -5770,7 +5765,7 @@ return (
               <div key={inv.id} onClick={() => setEditingInvoice(inv)} className="px-4 py-3 flex items-center justify-between gap-3 cursor-pointer hover:bg-white/5 transition">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                    <span className="mono text-[11px] font-bold" style={{ color: '#38bdf8' }}>{inv.invoiceNumber}</span>
+                    <span className="mono text-[11px] font-bold" style={{ color: '#0891b2' }}>{inv.invoiceNumber}</span>
                     <span className="text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider font-bold" style={{ background: `${statusColor(inv.status)}20`, color: statusColor(inv.status), border: `1px solid ${statusColor(inv.status)}40` }}>
                       {statusLabel(inv.status)}
                     </span>
@@ -5841,7 +5836,7 @@ return (
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="p-2 rounded" style={{ background: 'rgba(56, 189, 248, 0.06)' }}>
                   <div className="text-[9px] uppercase tracking-wider" style={{ color: 'var(--text-3)' }}>{t.totalBilled}</div>
-                  <div className="mono text-[11.5px] font-bold" style={{ color: '#38bdf8' }}>{fmt2(c.totalBilled)}</div>
+                  <div className="mono text-[11.5px] font-bold" style={{ color: '#0891b2' }}>{fmt2(c.totalBilled)}</div>
                 </div>
                 <div className="p-2 rounded" style={{ background: 'rgba(52, 211, 153, 0.06)' }}>
                   <div className="text-[9px] uppercase tracking-wider" style={{ color: 'var(--text-3)' }}>{t.totalPaid}</div>
@@ -6071,12 +6066,12 @@ ${inv.notes ? `<div class="notes"><strong>${lang === 'ar' ? 'ملاحظات' : '
 
 return (
 <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', padding: '20px' }} onClick={onClose}>
-<div className="glass-strong rounded-2xl w-full max-w-4xl my-4" style={{ background: 'rgba(15, 22, 40, 0.97)', border: '1px solid rgba(120, 180, 255, 0.2)' }} onClick={e => e.stopPropagation()}>
+<div className="glass-strong rounded-2xl w-full max-w-4xl my-4" style={{ background: 'rgba(255, 255, 255, 0.98)', border: '1px solid rgba(120, 180, 255, 0.2)' }} onClick={e => e.stopPropagation()}>
 {/* Header */}
 <div className="sticky top-0 z-10 px-6 py-4 flex items-center justify-between border-b" style={{ borderColor: 'rgba(120, 180, 255, 0.15)', background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.08), rgba(167, 139, 250, 0.08))', backdropFilter: 'blur(10px)' }}>
 <div className="flex items-center gap-3">
 <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(56, 189, 248, 0.15)', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
-<FileText size={18} color="#38bdf8" />
+<FileText size={18} color="#0891b2" />
 </div>
 <div>
 <h2 className="text-base font-bold mono" style={{ color: 'var(--text)' }}>{inv.invoiceNumber}</h2>
@@ -6115,7 +6110,7 @@ return (
       <div>
         <div className="flex items-center justify-between mb-2">
           <div className="text-[10.5px] uppercase tracking-wider font-bold" style={{ color: 'var(--text-3)' }}>{t.items}</div>
-          <button onClick={addItemRow} className="text-[10.5px] uppercase font-bold flex items-center gap-1 px-2 py-1 rounded" style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
+          <button onClick={addItemRow} className="text-[10.5px] uppercase font-bold flex items-center gap-1 px-2 py-1 rounded" style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#0891b2', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
             <Plus size={10} /> {t.addItem}
           </button>
         </div>
@@ -6157,11 +6152,11 @@ return (
             </select>
           </div>
         </div>
-        <div className="p-4 rounded-lg space-y-2" style={{ background: 'rgba(15, 22, 40, 0.5)', border: '1px solid rgba(120, 180, 255, 0.1)' }}>
+        <div className="p-4 rounded-lg space-y-2" style={{ background: 'rgba(241, 245, 249, 0.7)', border: '1px solid rgba(120, 180, 255, 0.1)' }}>
           <div className="flex justify-between text-[12px]"><span style={{ color: 'var(--text-2)' }}>{t.subtotal}</span><span className="mono">{money(inv.subtotal)}</span></div>
           {inv.discount > 0 && <div className="flex justify-between text-[12px]"><span style={{ color: 'var(--text-2)' }}>{t.discount}</span><span className="mono" style={{ color: '#f87171' }}>-{money(inv.discount)}</span></div>}
           {inv.tax > 0 && <div className="flex justify-between text-[12px]"><span style={{ color: 'var(--text-2)' }}>{t.tax}</span><span className="mono">{money(inv.tax)}</span></div>}
-          <div className="flex justify-between pt-2 border-t" style={{ borderColor: 'rgba(120, 180, 255, 0.15)' }}><span className="font-bold" style={{ color: 'var(--text)' }}>{t.grandTotal}</span><span className="mono font-bold text-[14px]" style={{ color: '#38bdf8' }}>{money(inv.total)}</span></div>
+          <div className="flex justify-between pt-2 border-t" style={{ borderColor: 'rgba(120, 180, 255, 0.15)' }}><span className="font-bold" style={{ color: 'var(--text)' }}>{t.grandTotal}</span><span className="mono font-bold text-[14px]" style={{ color: '#0891b2' }}>{money(inv.total)}</span></div>
           {inv.paid > 0 && <div className="flex justify-between text-[12px]"><span style={{ color: 'var(--text-2)' }}>{t.amountPaid}</span><span className="mono" style={{ color: '#34d399' }}>{money(inv.paid)}</span></div>}
           {inv.balance > 0 && <div className="flex justify-between"><span className="font-bold text-[12px]" style={{ color: 'var(--text)' }}>{t.balance}</span><span className="mono font-bold" style={{ color: '#f87171' }}>{money(inv.balance)}</span></div>}
         </div>
@@ -6175,7 +6170,7 @@ return (
     </div>
 
     {/* Footer */}
-    <div className="sticky bottom-0 px-6 py-4 flex items-center justify-between gap-2 border-t flex-wrap" style={{ borderColor: 'rgba(120, 180, 255, 0.15)', background: 'rgba(10, 16, 30, 0.95)', backdropFilter: 'blur(10px)' }}>
+    <div className="sticky bottom-0 px-6 py-4 flex items-center justify-between gap-2 border-t flex-wrap" style={{ borderColor: 'rgba(120, 180, 255, 0.15)', background: 'rgba(255, 255, 255, 0.98)', backdropFilter: 'blur(10px)' }}>
       <div className="flex gap-2">
         {state.invoices.find(i => i.id === inv.id) && (
           <button onClick={async () => { if (await askConfirm({ title: lang === 'ar' ? 'حذف الفاتورة' : 'Delete Invoice', message: lang === 'ar' ? 'هل تريد حذف هذه الفاتورة نهائياً؟' : 'Permanently delete this invoice?', confirmLabel: lang === 'ar' ? 'حذف' : 'Delete', danger: true })) { onDelete(inv.id); onClose(); } }} className="btn btn-ghost" style={{ color: '#f87171' }}>
@@ -6224,7 +6219,7 @@ onSave({ ...form, amount: Number(form.amount) });
 
 return (
 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
-<div className="glass-strong rounded-2xl w-full max-w-md" style={{ background: 'rgba(15, 22, 40, 0.97)', border: '1px solid rgba(120, 180, 255, 0.2)' }} onClick={e => e.stopPropagation()}>
+<div className="glass-strong rounded-2xl w-full max-w-md" style={{ background: 'rgba(255, 255, 255, 0.98)', border: '1px solid rgba(120, 180, 255, 0.2)' }} onClick={e => e.stopPropagation()}>
 <div className="px-5 py-4 flex items-center justify-between border-b" style={{ borderColor: 'rgba(120, 180, 255, 0.15)' }}>
 <div className="flex items-center gap-2">
 <DollarSign size={16} color="#34d399" />
@@ -6290,8 +6285,8 @@ return inv && inv.clinic === clinic.clinic;
 
 return (
 <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
-<div className="glass-strong rounded-2xl w-full max-w-3xl my-4" style={{ background: 'rgba(15, 22, 40, 0.97)', border: '1px solid rgba(120, 180, 255, 0.2)' }} onClick={e => e.stopPropagation()}>
-<div className="sticky top-0 z-10 px-5 py-4 flex items-center justify-between border-b" style={{ borderColor: 'rgba(120, 180, 255, 0.15)', background: 'rgba(15, 22, 40, 0.97)' }}>
+<div className="glass-strong rounded-2xl w-full max-w-3xl my-4" style={{ background: 'rgba(255, 255, 255, 0.98)', border: '1px solid rgba(120, 180, 255, 0.2)' }} onClick={e => e.stopPropagation()}>
+<div className="sticky top-0 z-10 px-5 py-4 flex items-center justify-between border-b" style={{ borderColor: 'rgba(120, 180, 255, 0.15)', background: 'rgba(255, 255, 255, 0.98)' }}>
 <div className="flex items-center gap-3">
 <Stethoscope size={18} color="#a78bfa" />
 <div>
@@ -6309,7 +6304,7 @@ return (
       <div className="grid grid-cols-3 gap-2">
         <div className="p-3 rounded-lg text-center" style={{ background: 'rgba(56, 189, 248, 0.08)' }}>
           <div className="text-[9px] uppercase tracking-wider" style={{ color: 'var(--text-3)' }}>{t.totalBilled}</div>
-          <div className="mono font-bold text-[13px]" style={{ color: '#38bdf8' }}>{money(clinic.totalBilled)}</div>
+          <div className="mono font-bold text-[13px]" style={{ color: '#0891b2' }}>{money(clinic.totalBilled)}</div>
         </div>
         <div className="p-3 rounded-lg text-center" style={{ background: 'rgba(52, 211, 153, 0.08)' }}>
           <div className="text-[9px] uppercase tracking-wider" style={{ color: 'var(--text-3)' }}>{t.totalPaid}</div>
@@ -6326,9 +6321,9 @@ return (
         <div className="text-[10.5px] uppercase tracking-wider font-bold mb-2" style={{ color: 'var(--text-3)' }}>{t.invoices} ({clinicInvoices.length})</div>
         <div className="space-y-1">
           {clinicInvoices.map(inv => (
-            <div key={inv.id} onClick={() => onOpenInvoice(inv)} className="px-3 py-2 rounded-lg flex justify-between items-center cursor-pointer hover:bg-white/5 transition" style={{ background: 'rgba(15, 22, 40, 0.5)', border: '1px solid rgba(120, 180, 255, 0.08)' }}>
+            <div key={inv.id} onClick={() => onOpenInvoice(inv)} className="px-3 py-2 rounded-lg flex justify-between items-center cursor-pointer hover:bg-white/5 transition" style={{ background: 'rgba(241, 245, 249, 0.7)', border: '1px solid rgba(120, 180, 255, 0.08)' }}>
               <div>
-                <div className="mono text-[11px] font-bold" style={{ color: '#38bdf8' }}>{inv.invoiceNumber}</div>
+                <div className="mono text-[11px] font-bold" style={{ color: '#0891b2' }}>{inv.invoiceNumber}</div>
                 <div className="text-[10px]" style={{ color: 'var(--text-3)' }}>{inv.date}</div>
               </div>
               <div className="text-right">
@@ -6389,7 +6384,7 @@ onSave({ ...form, name_ar: form.name_ar || name || '—', name_en: form.name_en 
 
 return (
 <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
-<div className="glass-strong rounded-2xl w-full max-w-md" style={{ background: 'rgba(15, 22, 40, 0.97)', border: '1px solid rgba(120, 180, 255, 0.2)' }} onClick={e => e.stopPropagation()}>
+<div className="glass-strong rounded-2xl w-full max-w-md" style={{ background: 'rgba(255, 255, 255, 0.98)', border: '1px solid rgba(120, 180, 255, 0.2)' }} onClick={e => e.stopPropagation()}>
 <div className="px-5 py-4 flex items-center justify-between border-b" style={{ borderColor: 'rgba(120, 180, 255, 0.15)' }}>
 <div className="flex items-center gap-2">
 <DollarSign size={16} color="#f87171" />
@@ -6439,7 +6434,7 @@ function AnalyticsView({ ctx }) {
 const { state, t, lang, isRtl, kpis, totalFixed, totalSalaries, getName, matCostPerUnit } = ctx;
 
 const fixedBreakdown = useMemo(() => {
-const colors = ['#38bdf8', '#a78bfa', '#f5b942', '#34d399', '#f472b6', '#22d3ee', '#fb923c'];
+const colors = ['#0891b2', '#a78bfa', '#f5b942', '#34d399', '#f472b6', '#06b6d4', '#fb923c'];
 const items = [
 ...state.salaries.map((s, i) => ({ name: getName(s), value: s.count * s.salary, color: colors[i % colors.length] })),
 ...state.fixed.map((f, i) => ({ name: getName(f), value: f.amount, color: colors[(i + state.salaries.length) % colors.length] })),
@@ -6460,7 +6455,7 @@ return Object.values(map);
 const materialCosts = state.materials.map((m, i) => ({
 name: getName(m),
 cost: matCostPerUnit(m),
-color: ['#38bdf8', '#a78bfa', '#f5b942', '#34d399', '#f472b6'][i % 5]
+color: ['#0891b2', '#a78bfa', '#f5b942', '#34d399', '#f472b6'][i % 5]
 })).sort((a, b) => b.cost - a.cost);
 
 const revenueByClinic = useMemo(() => {
@@ -6501,7 +6496,7 @@ return (
 <div className="text-[10.5px] uppercase font-bold tracking-widest mb-1" style={{ color: 'var(--text-3)', letterSpacing: '0.12em' }}>
 {t.materialEfficiency}
 </div>
-<div className="display-font text-3xl font-semibold mono" style={{ color: '#38bdf8' }}>
+<div className="display-font text-3xl font-semibold mono" style={{ color: '#0891b2' }}>
 {kpis.totalRev > 0 ? fmt2((kpis.estMatCost / kpis.totalRev) * 100) : 0}%
 </div>
 <div className="text-[11.5px] mt-1" style={{ color: 'var(--text-3)' }}>
@@ -6549,7 +6544,7 @@ return (
           <XAxis dataKey="room" tick={{ fill: '#5d6e92', fontSize: 10 }} stroke="rgba(120,180,255,0.1)" reversed={isRtl} />
           <YAxis tick={{ fill: '#5d6e92', fontSize: 11 }} stroke="rgba(120,180,255,0.1)" orientation={isRtl ? 'right' : 'left'} />
           <Tooltip
-            contentStyle={{ background: 'rgba(15, 22, 40, 0.95)', border: '1px solid rgba(120, 180, 255, 0.2)', borderRadius: 10, fontSize: 12 }}
+            contentStyle={{ background: 'rgba(255, 255, 255, 0.98)', border: '1px solid rgba(120, 180, 255, 0.2)', borderRadius: 10, fontSize: 12 }}
             formatter={(v) => `${v} ${t.hours}`}
           />
           <Bar dataKey="hours" radius={[6, 6, 0, 0]}>
@@ -6571,11 +6566,11 @@ return (
           <PieChart>
             <Pie data={fixedBreakdown} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={1}>
               {fixedBreakdown.map((entry, i) => (
-                <Cell key={i} fill={entry.color} stroke="rgba(15, 22, 40, 0.6)" strokeWidth={2} />
+                <Cell key={i} fill={entry.color} stroke="rgba(241, 245, 249, 0.85)" strokeWidth={2} />
               ))}
             </Pie>
             <Tooltip
-              contentStyle={{ background: 'rgba(15, 22, 40, 0.95)', border: '1px solid rgba(120, 180, 255, 0.2)', borderRadius: 10, fontSize: 12 }}
+              contentStyle={{ background: 'rgba(255, 255, 255, 0.98)', border: '1px solid rgba(120, 180, 255, 0.2)', borderRadius: 10, fontSize: 12 }}
               formatter={(v) => `${fmt(v)} KD`}
             />
           </PieChart>
@@ -6621,10 +6616,10 @@ return (
               <XAxis dataKey="type" tick={{ fill: '#5d6e92', fontSize: 11 }} stroke="rgba(120,180,255,0.1)" reversed={isRtl} />
               <YAxis tick={{ fill: '#5d6e92', fontSize: 11 }} stroke="rgba(120,180,255,0.1)" orientation={isRtl ? 'right' : 'left'} />
               <Tooltip
-                contentStyle={{ background: 'rgba(15, 22, 40, 0.95)', border: '1px solid rgba(120, 180, 255, 0.2)', borderRadius: 10, fontSize: 12 }}
+                contentStyle={{ background: 'rgba(255, 255, 255, 0.98)', border: '1px solid rgba(120, 180, 255, 0.2)', borderRadius: 10, fontSize: 12 }}
               />
               <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar dataKey="total" fill="#38bdf8" fillOpacity={0.4} radius={[4, 4, 0, 0]} name={lang === 'ar' ? 'إجمالي' : 'Total'} />
+              <Bar dataKey="total" fill="#0891b2" fillOpacity={0.4} radius={[4, 4, 0, 0]} name={lang === 'ar' ? 'إجمالي' : 'Total'} />
               <Bar dataKey="remakes" fill="#f87171" radius={[4, 4, 0, 0]} name={t.remake} />
             </BarChart>
           </ResponsiveContainer>
@@ -6923,9 +6918,9 @@ return (
 
 <div className="glass rounded-2xl flex flex-col" style={{ height: 'calc(100vh - 180px)', minHeight: 500 }}>
 <div className="px-5 py-4 border-b flex items-center gap-3" style={{ borderColor: 'rgba(120, 180, 255, 0.08)' }}>
-<div className="w-10 h-10 rounded-xl flex items-center justify-center relative" style={{ background: 'linear-gradient(135deg, #38bdf8, #a78bfa)' }}>
-<Sparkles size={17} color="#001220" />
-<div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 pulse-soft" style={{ border: '2px solid rgba(15, 22, 40, 1)' }} />
+<div className="w-10 h-10 rounded-xl flex items-center justify-center relative" style={{ background: 'linear-gradient(135deg, #06b6d4, #2563eb)' }}>
+<Sparkles size={17} color="#ffffff" />
+<div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 pulse-soft" style={{ border: '2px solid #ffffff' }} />
 </div>
 <div className="flex-1">
 <div className="display-font text-base font-semibold" style={{ color: 'var(--text)' }}>{t.aiAssistant}</div>
@@ -6939,15 +6934,15 @@ return (
     {messages.map((m, i) => (
       <div key={i} className={`flex gap-2.5 ${m.role === 'user' ? 'justify-end' : ''}`}>
         {m.role === 'assistant' && (
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #38bdf8, #a78bfa)' }}>
-            <Bot size={13} color="#001220" />
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #06b6d4, #2563eb)' }}>
+            <Bot size={13} color="#ffffff" />
           </div>
         )}
         <div
           className="rounded-2xl px-3.5 py-2.5 max-w-[80%]"
           style={{
-            background: m.role === 'user' ? 'linear-gradient(135deg, #38bdf8, #22d3ee)' : 'rgba(120, 180, 255, 0.06)',
-            color: m.role === 'user' ? '#001220' : 'var(--text)',
+            background: m.role === 'user' ? 'linear-gradient(135deg, #06b6d4, #2563eb)' : 'rgba(120, 180, 255, 0.06)',
+            color: m.role === 'user' ? '#ffffff' : 'var(--text)',
             fontSize: 13.5,
             lineHeight: 1.55,
             whiteSpace: 'pre-wrap',
@@ -6959,8 +6954,8 @@ return (
     ))}
     {thinking && (
       <div className="flex gap-2.5">
-        <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #38bdf8, #a78bfa)' }}>
-          <Loader2 size={13} color="#001220" className="animate-spin" />
+        <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #06b6d4, #2563eb)' }}>
+          <Loader2 size={13} color="#ffffff" className="animate-spin" />
         </div>
         <div className="rounded-2xl px-3.5 py-2.5" style={{ background: 'rgba(120, 180, 255, 0.06)', color: 'var(--text-3)', fontSize: 13.5 }}>
           {t.thinking}
@@ -7199,7 +7194,7 @@ return (
 <div className="flex items-start justify-between gap-4 pb-5 border-b last:border-b-0 last:pb-0" style={{ borderColor: 'rgba(120, 180, 255, 0.06)' }}>
 <div className="flex items-start gap-3 flex-1">
 <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(56, 189, 248, 0.08)', border: '1px solid rgba(56, 189, 248, 0.15)' }}>
-<Icon size={15} color="#38bdf8" />
+<Icon size={15} color="#0891b2" />
 </div>
 <div className="flex-1 min-w-0">
 <div className="text-[13px] font-bold" style={{ color: 'var(--text)' }}>{label}</div>
