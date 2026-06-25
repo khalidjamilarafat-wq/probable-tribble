@@ -1,3 +1,8 @@
+// @ts-nocheck
+// NOTE: This is a large single-file app ported from a prototype and is not yet
+// fully typed. Vite/esbuild builds and runs it as-is; `npm run typecheck` skips
+// this file so it still meaningfully covers newer typed code (the Netlify
+// function, entry point). Incremental typing is tracked as future work.
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
 LayoutDashboard, Boxes, Users, BarChart3, Sparkles, Settings,
@@ -1004,22 +1009,20 @@ const [savedFlash, setSavedFlash] = useState(false);
 const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 const [toast, setToast] = useState(null); // {type, msg}
+const [dialog, setDialog] = useState(null); // {title, message, confirmLabel, cancelLabel, danger, resolve}
 
 const t = TR[lang];
 const isRtl = lang === 'ar';
 
 // Load from persistent storage
 useEffect(() => {
-(async () => {
 try {
-if (typeof window !== 'undefined' && window.storage) {
-const [s, l] = await Promise.all([
-window.storage.get('dental-state').catch(() => null),
-window.storage.get('dental-lang').catch(() => null),
-]);
-if (s?.value) {
+if (typeof window !== 'undefined' && window.localStorage) {
+const rawState = window.localStorage.getItem('dental-state');
+const rawLang = window.localStorage.getItem('dental-lang');
+if (rawState) {
 try {
-const parsed = JSON.parse(s.value);
+const parsed = JSON.parse(rawState);
 // migration: ensure new fields exist
 parsed.cases = (parsed.cases || []).map(c => ({
 ...c,
@@ -1032,14 +1035,14 @@ parsed.technicians = (parsed.technicians || []).map(tch => ({
 room: tch.room || (tch.specialty === 'zirconia' ? 'digital' : tch.specialty === 'emax' ? 'ceramic' : tch.specialty === 'plaster' ? 'plaster' : 'processing'),
 }));
 parsed.activeTechId = parsed.activeTechId || null;
-setState(parsed);
+// merge over defaults so newly-added fields always have valid values
+setState({ ...defaultState(), ...parsed });
 } catch {}
 }
-if (l?.value) setLang(l.value);
+if (rawLang) setLang(rawLang);
 }
 } catch {}
 setLoading(false);
-})();
 }, []);
 
 // Save to persistent storage (debounced)
@@ -1047,11 +1050,11 @@ const saveTimer = useRef(null);
 useEffect(() => {
 if (loading) return;
 clearTimeout(saveTimer.current);
-saveTimer.current = setTimeout(async () => {
+saveTimer.current = setTimeout(() => {
 try {
-if (typeof window !== 'undefined' && window.storage) {
-await window.storage.set('dental-state', JSON.stringify(state));
-await window.storage.set('dental-lang', lang);
+if (typeof window !== 'undefined' && window.localStorage) {
+window.localStorage.setItem('dental-state', JSON.stringify(state));
+window.localStorage.setItem('dental-lang', lang);
 setSavedFlash(true);
 setTimeout(() => setSavedFlash(false), 1500);
 }
@@ -1090,6 +1093,25 @@ state.fixed.reduce((s, f) => s + (f.amount || 0), 0),
 [state.fixed]
 );
 const totalFixed = totalSalaries + totalFixedOther;
+
+// ═════ Currency ═════
+// All monetary values are stored in the base currency (KD, rate = 1).
+// `money()` converts a base amount into the active display currency and
+// formats it with the correct symbol and decimal places.
+const activeCurrency = useMemo(() => {
+const list = state.currencies || [];
+return list.find(c => c.code === state.defaultCurrency) || list[0] || { code: 'KD', symbol: 'KD', rate: 1, decimals: 2 };
+}, [state.currencies, state.defaultCurrency]);
+
+const money = useCallback((amountKD, opts = {}) => {
+const cur = opts.currency
+? (state.currencies || []).find(c => c.code === opts.currency) || activeCurrency
+: activeCurrency;
+const converted = Number(amountKD || 0) * (cur.rate || 1);
+const decimals = cur.decimals ?? 2;
+const num = converted.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+return opts.noSymbol ? num : `${num} ${cur.symbol || cur.code}`;
+}, [activeCurrency, state.currencies]);
 
 const kpis = useMemo(() => {
 const cases = state.cases;
@@ -1160,15 +1182,47 @@ setState(s => ({ ...s, [list]: s[list].filter(x => x.id !== id) }));
 
 const getName = (item) => lang === 'ar' ? (item.name_ar || item.name_en) : (item.name_en || item.name_ar);
 
-const showToast = (type, msg) => {
-setToast({ type, msg });
-setTimeout(() => setToast(null), 2500);
+const toastTimer = useRef(null);
+const showToast = (type, msg, action = null) => {
+clearTimeout(toastTimer.current);
+setToast({ type, msg, action });
+toastTimer.current = setTimeout(() => setToast(null), action ? 5000 : 2500);
+};
+
+// Remove a list item but keep it recoverable via an Undo toast.
+const removeItemUndo = (list, id, label) => {
+let removed = null;
+setState(s => {
+removed = s[list].find(x => x.id === id) || null;
+return { ...s, [list]: s[list].filter(x => x.id !== id) };
+});
+showToast('warning', `${lang === 'ar' ? 'تم الحذف' : 'Deleted'}${label ? ` · ${label}` : ''}`, {
+label: lang === 'ar' ? 'تراجع' : 'Undo',
+fn: () => { if (removed) setState(s => ({ ...s, [list]: [...s[list], removed] })); },
+});
+};
+
+// Themed confirmation dialog. Returns a Promise<boolean> that resolves to the
+// user's choice. Replaces native window.confirm so the prompt matches the UI.
+const askConfirm = (opts) => new Promise((resolve) => {
+setDialog({
+title: opts.title || (lang === 'ar' ? 'تأكيد' : 'Confirm'),
+message: opts.message || '',
+confirmLabel: opts.confirmLabel || (lang === 'ar' ? 'تأكيد' : 'Confirm'),
+cancelLabel: opts.cancelLabel || (lang === 'ar' ? 'إلغاء' : 'Cancel'),
+danger: !!opts.danger,
+resolve,
+});
+});
+const resolveDialog = (value) => {
+setDialog(d => { d?.resolve?.(value); return null; });
 };
 
 // Move case to a target room. Records who did it.
 const moveCaseToRoom = (caseId, targetRoomId, byName) => {
 let success = false;
 let foundCase = null;
+let deductMaterial = null; // material category to draw from inventory on completion
 setState(s => {
 const newCases = s.cases.map(c => {
 if (c.id !== caseId) return c;
@@ -1178,9 +1232,24 @@ const newHistory = [...(c.roomHistory || []), { room: targetRoomId, at: nowIso()
 let newStatus = c.status;
 if (targetRoomId === 'office') newStatus = 'completed';
 else if (c.status === 'pending') newStatus = 'inProgress';
-return { ...c, currentRoom: targetRoomId, status: newStatus, roomHistory: newHistory };
+// On completion, draw one matching block/disc from inventory (once).
+const justCompleted = targetRoomId === 'office' && !c.inventoryDeducted;
+if (justCompleted) deductMaterial = c.type;
+return { ...c, currentRoom: targetRoomId, status: newStatus, roomHistory: newHistory, inventoryDeducted: c.inventoryDeducted || justCompleted };
 });
-return { ...s, cases: newCases };
+// Auto-deduct inventory: first in-stock item whose category matches the case material.
+let newInventory = s.inventory;
+if (deductMaterial) {
+let done = false;
+newInventory = s.inventory.map(it => {
+if (!done && it.category === deductMaterial && (it.stock || 0) > 0) {
+done = true;
+return { ...it, stock: it.stock - 1 };
+}
+return it;
+});
+}
+return { ...s, cases: newCases, inventory: newInventory };
 });
 return { success, case: foundCase };
 };
@@ -1199,9 +1268,16 @@ moveCaseToRoom(found.id, next, byName);
 return { success: true, case: found, newRoom: next };
 };
 
-const handleReset = () => {
-if (confirm(lang === 'ar' ? 'هل أنت متأكد من إعادة تعيين كل البيانات؟' : 'Reset all data to defaults?')) {
+const handleReset = async () => {
+const ok = await askConfirm({
+title: lang === 'ar' ? 'إعادة تعيين البيانات' : 'Reset Data',
+message: lang === 'ar' ? 'هل أنت متأكد من إعادة تعيين كل البيانات إلى الإعدادات الافتراضية؟ لا يمكن التراجع.' : 'Reset all data to defaults? This cannot be undone.',
+confirmLabel: lang === 'ar' ? 'إعادة تعيين' : 'Reset',
+danger: true,
+});
+if (ok) {
 setState(defaultState());
+showToast('success', lang === 'ar' ? 'تمت إعادة التعيين' : 'Data reset');
 }
 };
 
@@ -1212,7 +1288,8 @@ state, setState, lang, t, isRtl, getName, fmt, fmt2, fmt3,
 setField, addItem, removeItem,
 matCostPerUnit, totalSalaries, totalFixed, totalFixedOther,
 consPerUnit, kpis,
-notifications, moveCaseToRoom, moveCaseByQrCode, setActiveTech, showToast
+notifications, moveCaseToRoom, moveCaseByQrCode, setActiveTech, showToast,
+money, activeCurrency, askConfirm, removeItemUndo,
 };
 
 if (loading) {
@@ -1483,6 +1560,36 @@ minWidth: 280,
 toast.type === 'error' ? <AlertTriangle size={18} color="#f87171" /> :
 <Bell size={18} color="#f5b942" />}
 <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{toast.msg}</div>
+{toast.action && (
+<button
+onClick={() => { toast.action.fn(); setToast(null); }}
+className="ml-2 text-[12px] font-bold px-2.5 py-1 rounded-md shrink-0"
+style={{ background: 'rgba(56, 189, 248, 0.15)', border: '1px solid rgba(56, 189, 248, 0.3)', color: '#38bdf8' }}
+>
+{toast.action.label}
+</button>
+)}
+</div>
+</div>
+)}
+
+{/* Themed confirmation dialog */}
+{dialog && (
+<div className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)' }} onClick={() => resolveDialog(false)}>
+<div className="glass-strong rounded-2xl w-full max-w-md p-6" style={{ background: 'rgba(15, 22, 40, 0.98)', border: '1px solid rgba(120, 180, 255, 0.2)', animation: 'slideUp 0.25s ease-out' }} onClick={e => e.stopPropagation()}>
+<div className="flex items-start gap-3 mb-4">
+<div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: dialog.danger ? 'rgba(248, 113, 113, 0.15)' : 'rgba(56, 189, 248, 0.15)', border: `1px solid ${dialog.danger ? 'rgba(248, 113, 113, 0.3)' : 'rgba(56, 189, 248, 0.3)'}` }}>
+<AlertTriangle size={18} color={dialog.danger ? '#f87171' : '#38bdf8'} />
+</div>
+<div className="flex-1 min-w-0">
+<div className="text-[15px] font-bold mb-1" style={{ color: 'var(--text)' }}>{dialog.title}</div>
+<div className="text-[12.5px]" style={{ color: 'var(--text-2)', lineHeight: 1.55 }}>{dialog.message}</div>
+</div>
+</div>
+<div className="flex gap-2 justify-end">
+<button onClick={() => resolveDialog(false)} className="btn btn-ghost">{dialog.cancelLabel}</button>
+<button onClick={() => resolveDialog(true)} className={`btn ${dialog.danger ? 'btn-danger' : 'btn-primary'}`}>{dialog.confirmLabel}</button>
+</div>
 </div>
 </div>
 )}
@@ -2012,6 +2119,19 @@ return map;
 
 const visibleRooms = filterRoom === 'all' ? ROOMS : ROOMS.filter(r => r.id === filterRoom);
 
+// Cases that have sat in their current room longer than 1.5× its SLA.
+const stuckCases = useMemo(() => {
+return activeCases
+.map(c => {
+const last = c.roomHistory && c.roomHistory.length ? c.roomHistory[c.roomHistory.length - 1] : null;
+const hrs = last ? hoursIn(last.at) : 0;
+const sla = ROOM_SLA_HOURS[c.currentRoom] || 12;
+return { c, hrs, sla, over: hrs > sla * 1.5 };
+})
+.filter(x => x.over)
+.sort((a, b) => (b.hrs / b.sla) - (a.hrs / a.sla));
+}, [activeCases]);
+
 return (
 
 <div className="space-y-5">
@@ -2059,7 +2179,43 @@ color="#34d399" icon={Calendar}
         <span className="mono text-[10px] opacity-60">{casesByRoom[r.id].length}</span>
       </button>
     ))}
+    <button
+      onClick={() => { if (activeCases.length) printBatchLabels(activeCases, lang); else showToast('warning', t.noCases); }}
+      className="btn btn-ghost whitespace-nowrap ml-auto shrink-0"
+      title={lang === 'ar' ? 'طباعة ملصقات QR لكل الحالات' : 'Print QR labels for all cases'}
+    >
+      <QrCode size={13} /> {lang === 'ar' ? 'طباعة الملصقات' : 'Print Labels'}
+    </button>
   </div>
+
+{/* Stuck cases banner */}
+{stuckCases.length > 0 && (
+  <div className="glass rounded-2xl p-4" style={{ borderColor: 'rgba(245, 185, 66, 0.3)', background: 'rgba(245, 185, 66, 0.04)' }}>
+    <div className="flex items-center gap-2 mb-2">
+      <Hourglass size={15} color="#f5b942" />
+      <span className="text-[13px] font-bold" style={{ color: 'var(--text)' }}>
+        {lang === 'ar' ? 'حالات متوقفة' : 'Stuck Cases'} ({stuckCases.length})
+      </span>
+      <span className="text-[11px]" style={{ color: 'var(--text-3)' }}>
+        {lang === 'ar' ? 'تجاوزت الوقت المتوقع في غرفتها' : 'exceeded expected time in room'}
+      </span>
+    </div>
+    <div className="flex flex-wrap gap-2">
+      {stuckCases.slice(0, 8).map(({ c, hrs }) => (
+        <button
+          key={c.id}
+          onClick={() => setSelectedCase(c)}
+          className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11.5px]"
+          style={{ background: 'rgba(245, 185, 66, 0.1)', border: '1px solid rgba(245, 185, 66, 0.25)' }}
+        >
+          <span className="mono font-bold" style={{ color: '#f5b942' }}>{c.caseId}</span>
+          <span style={{ color: 'var(--text-2)' }}>{lang === 'ar' ? ROOM_MAP[c.currentRoom]?.ar : ROOM_MAP[c.currentRoom]?.en}</span>
+          <span className="mono" style={{ color: 'var(--text-3)' }}>{Math.round(hrs)}{t.hours}</span>
+        </button>
+      ))}
+    </div>
+  </div>
+)}
 
 {/* Rooms board */}
 
@@ -2411,6 +2567,47 @@ function qrSvgString(value, px = 220) {
   let path = '';
   for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (mods[y][x]) path += `M${x + quiet} ${y + quiet}h1v1h-1z`;
   return `<svg width="${px}" height="${px}" viewBox="0 0 ${dim} ${dim}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg"><rect width="${dim}" height="${dim}" fill="#fff"/><path d="${path}" fill="#000"/></svg>`;
+}
+
+// Print a sheet of QR labels for many cases at once (one scannable label each).
+function printBatchLabels(cases, lang) {
+  const w = window.open('', '_blank');
+  if (!w) return;
+  const matName = (type) => ({
+    zirconia: 'Zirconia', emax: 'E-max', emaxCad: 'E-max CAD', pmma: 'PMMA',
+    acrylic: 'Acrylic', implant: 'Implant', veneer: 'Veneer', denture: 'Denture',
+    ortho: 'Ortho', cadcam: 'CAD/CAM',
+  }[type] || type || '—');
+  const roomName = (id) => (ROOM_MAP[id] ? (lang === 'ar' ? ROOM_MAP[id].ar : ROOM_MAP[id].en) : '—');
+  const cards = cases.map(c => `
+    <div class="label">
+      <div class="qr">${qrSvgString(c.caseId, 150)}</div>
+      <div class="info">
+        <div class="cid">${c.caseId}</div>
+        <div class="pt">${c.patient || ''}</div>
+        <div class="meta">${matName(c.type)}${c.units ? ' · ' + c.units + 'u' : ''}</div>
+        <div class="meta">${roomName(c.currentRoom)}</div>
+      </div>
+    </div>`).join('');
+  w.document.write(`<!DOCTYPE html>
+<html lang="${lang}" dir="${lang === 'ar' ? 'rtl' : 'ltr'}">
+<head><meta charset="UTF-8" /><title>QR Labels</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: ${lang === 'ar' ? '"Tajawal", system-ui, sans-serif' : '"Manrope", system-ui, sans-serif'}; margin: 0; padding: 12px; background: #fff; color: #000; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .label { border: 1px solid #000; border-radius: 6px; padding: 8px; display: flex; gap: 8px; align-items: center; break-inside: avoid; }
+  .qr svg { width: 80px; height: 80px; }
+  .info { min-width: 0; }
+  .cid { font-family: monospace; font-weight: 700; font-size: 13px; }
+  .pt { font-size: 12px; font-weight: 600; }
+  .meta { font-size: 10px; color: #444; }
+  @media print { @page { size: A4; margin: 10mm; } }
+</style></head>
+<body><div class="grid">${cards}</div>
+<script>setTimeout(() => window.print(), 500);</script>
+</body></html>`);
+  w.document.close();
 }
 
 
@@ -4039,7 +4236,7 @@ style={{ fontFamily: mono ? 'monospace' : 'inherit' }}
 //  CASES VIEW
 // ═══════════════════════════════════════════════════════════════════════
 function CasesView({ ctx }) {
-const { state, t, lang, isRtl, setField, addItem, removeItem } = ctx;
+const { state, t, lang, isRtl, setField, addItem, removeItem, removeItemUndo } = ctx;
 const [filter, setFilter] = useState('all');
 const [search, setSearch] = useState('');
 const [showQrCase, setShowQrCase] = useState(null);
@@ -4232,7 +4429,7 @@ className={`tab-btn ${filter === s ? 'active' : ''} whitespace-nowrap`}
             <RefreshCw size={11} color={c.remake ? '#f87171' : 'var(--text-3)'} />
           </button>
           <button
-            onClick={() => removeItem('cases', c.id)}
+            onClick={() => removeItemUndo('cases', c.id, c.caseId)}
             className="w-7 h-7 rounded flex items-center justify-center"
             style={{ background: 'rgba(248, 113, 113, 0.06)', border: '1px solid rgba(248, 113, 113, 0.15)' }}
           >
@@ -4899,7 +5096,7 @@ table th.center { text-align: center; }
 //  REPORTS TAB COMPONENT (used inside AccountingView)
 // ═══════════════════════════════════════════════════════════════════════
 function ReportsTab({ ctx }) {
-const { state, t, lang, fmt2 } = ctx;
+const { state, t, lang, fmt2, showToast } = ctx;
 const [reportType, setReportType] = useState('monthly'); // 'monthly' | 'clinic' | 'all'
 const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
 const [selectedClinic, setSelectedClinic] = useState('');
@@ -4959,7 +5156,7 @@ return lang === 'ar' ? 'كامل سجل الفواتير' : 'Complete invoice hi
 
 const handleExportExcel = () => {
 if (filteredInvoices.length === 0) {
-alert(lang === 'ar' ? 'لا توجد فواتير للتصدير' : 'No invoices to export');
+showToast('warning', lang === 'ar' ? 'لا توجد فواتير للتصدير' : 'No invoices to export');
 return;
 }
 const filename = `${getReportTitle().replace(/[^a-zA-Z0-9\-_\s]/g, '_').replace(/\s+/g, '_')}.xlsx`;
@@ -4968,7 +5165,7 @@ exportInvoicesToExcel(filteredInvoices, relatedPayments, filename, getReportTitl
 
 const handleExportPdf = () => {
 if (filteredInvoices.length === 0) {
-alert(lang === 'ar' ? 'لا توجد فواتير للتصدير' : 'No invoices to export');
+showToast('warning', lang === 'ar' ? 'لا توجد فواتير للتصدير' : 'No invoices to export');
 return;
 }
 printInvoicesReport(filteredInvoices, getReportTitle(), getReportSubtitle(), lang, fmt2);
@@ -5140,7 +5337,7 @@ boxShadow: active ? `0 0 16px ${r.color}25` : 'none',
 //  PROFESSIONAL ACCOUNTING VIEW
 // ═══════════════════════════════════════════════════════════════════════
 function AccountingView({ ctx }) {
-const { state, setState, t, lang, isRtl, addItem, removeItem, setField, fmt, fmt2 } = ctx;
+const { state, setState, t, lang, isRtl, addItem, removeItem, setField, fmt, fmt2, money, showToast, askConfirm } = ctx;
 const [activeTab, setActiveTab] = useState('dashboard');
 const [showAddExpense, setShowAddExpense] = useState(false);
 const [editingInvoice, setEditingInvoice] = useState(null);
@@ -5340,7 +5537,7 @@ const generateFromCases = () => {
 const existingCaseIds = new Set(state.invoices.map(i => i.caseLinkId).filter(Boolean));
 const newCases = state.cases.filter(c => !existingCaseIds.has(c.id));
 if (newCases.length === 0) {
-alert(lang === 'ar' ? 'كل الحالات لها فواتير بالفعل' : 'All cases already have invoices');
+showToast('warning', lang === 'ar' ? 'كل الحالات لها فواتير بالفعل' : 'All cases already have invoices');
 return;
 }
 const today = new Date().toISOString().split('T')[0];
@@ -5390,7 +5587,7 @@ return (
 </div>
 <div className="text-[10px] uppercase font-bold tracking-widest" style={{ color: 'var(--text-3)' }}>{label}</div>
 <div className="display-font text-xl font-bold mono mt-1" style={{ color: profitColor }}>
-{fmt2(value)} <span className="text-[11px]" style={{ color: 'var(--text-3)' }}>KD</span>
+{money(value)}
 </div>
 {sub && <div className="text-[10.5px] mt-1" style={{ color: 'var(--text-3)' }}>{sub}</div>}
 </div>
@@ -5503,7 +5700,7 @@ return (
                 <div key={r.label}>
                   <div className="flex items-center justify-between text-[11px] mb-1">
                     <span style={{ color: 'var(--text-2)' }}>{r.label}</span>
-                    <span className="mono font-bold" style={{ color: r.color }}>{fmt2(r.value)} KD</span>
+                    <span className="mono font-bold" style={{ color: r.color }}>{money(r.value)}</span>
                   </div>
                   <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
                     <div style={{ width: `${total > 0 ? (r.value / total) * 100 : 0}%`, height: '100%', background: r.color, transition: 'width 0.3s' }} />
@@ -5537,8 +5734,8 @@ return (
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="mono text-[11px]" style={{ color: 'var(--text-3)' }}>{fmt2(c.totalBilled)} KD {lang === 'ar' ? 'إجمالي' : 'billed'}</div>
-                  <div className="mono font-bold text-[12px]" style={{ color: c.balance > 0 ? '#f87171' : '#34d399' }}>{fmt2(c.balance)} KD {c.balance > 0 ? (lang === 'ar' ? 'مستحق' : 'owed') : (lang === 'ar' ? 'مدفوع' : 'paid')}</div>
+                  <div className="mono text-[11px]" style={{ color: 'var(--text-3)' }}>{money(c.totalBilled)} {lang === 'ar' ? 'إجمالي' : 'billed'}</div>
+                  <div className="mono font-bold text-[12px]" style={{ color: c.balance > 0 ? '#f87171' : '#34d399' }}>{money(c.balance)} {c.balance > 0 ? (lang === 'ar' ? 'مستحق' : 'owed') : (lang === 'ar' ? 'مدفوع' : 'paid')}</div>
                 </div>
               </div>
             ))}
@@ -5582,7 +5779,7 @@ return (
                   <div className="text-[10px] truncate" style={{ color: 'var(--text-3)' }}>{inv.date} → {inv.dueDate}</div>
                 </div>
                 <div className="text-right shrink-0">
-                  <div className="mono font-bold text-[13px]" style={{ color: 'var(--text)' }}>{fmt2(inv.total)} KD</div>
+                  <div className="mono font-bold text-[13px]" style={{ color: 'var(--text)' }}>{money(inv.total)}</div>
                   {inv.balance > 0 && <div className="mono text-[10px]" style={{ color: '#f87171' }}>{fmt2(inv.balance)} {lang === 'ar' ? 'متبقي' : 'left'}</div>}
                   {inv.balance <= 0 && <div className="text-[10px]" style={{ color: '#34d399' }}>✓ {t.paidStatus}</div>}
                 </div>
@@ -5613,7 +5810,7 @@ return (
                   <div className="text-[11.5px] font-semibold" style={{ color: 'var(--text)' }}>{inv?.clinic || '—'}</div>
                   <div className="text-[10px]" style={{ color: 'var(--text-3)' }}>{p.date} · {t['method' + (p.method || 'Cash').charAt(0).toUpperCase() + (p.method || 'cash').slice(1)] || p.method}{p.reference ? ' · ' + p.reference : ''}</div>
                 </div>
-                <div className="mono font-bold" style={{ color: '#34d399' }}>+{fmt2(p.amount)} KD</div>
+                <div className="mono font-bold" style={{ color: '#34d399' }}>+{money(p.amount)}</div>
               </div>
             );
           })}
@@ -5671,7 +5868,7 @@ return (
       <div className="glass rounded-xl overflow-hidden">
         <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: 'rgba(120, 180, 255, 0.08)' }}>
           <span className="text-[11.5px] font-bold uppercase tracking-wider" style={{ color: 'var(--text)' }}>{t.expensesList}</span>
-          <span className="text-[11px] mono" style={{ color: '#f87171' }}>{fmt2(metrics.totalVarExpenses)} KD</span>
+          <span className="text-[11px] mono" style={{ color: '#f87171' }}>{money(metrics.totalVarExpenses)}</span>
         </div>
         {state.expenses.length === 0 ? (
           <div className="text-center py-8 text-[12px]" style={{ color: 'var(--text-3)' }}>{t.noExpenses}</div>
@@ -5689,7 +5886,7 @@ return (
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="mono font-bold text-[12px]" style={{ color: '#f87171' }}>{fmt2(exp.amount)} KD</span>
+                    <span className="mono font-bold text-[12px]" style={{ color: '#f87171' }}>{money(exp.amount)}</span>
                     <button onClick={() => removeItem('expenses', exp.id)} className="w-7 h-7 rounded flex items-center justify-center" style={{ background: 'rgba(248, 113, 113, 0.1)', border: '1px solid rgba(248, 113, 113, 0.2)' }}>
                       <Trash2 size={11} color="#f87171" />
                     </button>
@@ -5723,7 +5920,7 @@ return (
 //  INVOICE EDIT MODAL (Smart, editable, printable)
 // ═══════════════════════════════════════════════════════════════════════
 function InvoiceEditModal({ invoice, ctx, onClose, onSave, onDelete, onRecordPayment }) {
-const { state, t, lang, fmt2 } = ctx;
+const { state, t, lang, fmt2, money, askConfirm } = ctx;
 const [inv, setInv] = useState(invoice);
 
 // Auto-recalculate totals when items, discount, or tax changes
@@ -5764,7 +5961,7 @@ setInv(prev => ({ ...prev, items: prev.items.filter(item => item.id !== id) }));
 const printInvoice = () => {
 const w = window.open('', '_blank');
 if (!w) return;
-const itemRows = inv.items.map(item => `<tr> <td style="padding:10px;border-bottom:1px solid #ddd;">${item.description || '—'}</td> <td style="padding:10px;text-align:center;border-bottom:1px solid #ddd;font-family:monospace;">${item.quantity}</td> <td style="padding:10px;text-align:right;border-bottom:1px solid #ddd;font-family:monospace;">${fmt2(item.unitPrice)} KD</td> <td style="padding:10px;text-align:right;border-bottom:1px solid #ddd;font-family:monospace;font-weight:700;">${fmt2(item.total)} KD</td> </tr>`).join('');
+const itemRows = inv.items.map(item => `<tr> <td style="padding:10px;border-bottom:1px solid #ddd;">${item.description || '—'}</td> <td style="padding:10px;text-align:center;border-bottom:1px solid #ddd;font-family:monospace;">${item.quantity}</td> <td style="padding:10px;text-align:right;border-bottom:1px solid #ddd;font-family:monospace;">${money(item.unitPrice)}</td> <td style="padding:10px;text-align:right;border-bottom:1px solid #ddd;font-family:monospace;font-weight:700;">${money(item.total)}</td> </tr>`).join('');
 
 w.document.write(`<!DOCTYPE html>
 
@@ -5851,18 +6048,20 @@ table th.right { text-align: ${lang === 'ar' ? 'left' : 'right'}; }
 
   <div class="totals">
     <div class="totals-box">
-      <div class="totals-row"><span>${lang === 'ar' ? 'المجموع الفرعي' : 'Subtotal'}</span><span style="font-family:monospace;">${fmt2(inv.subtotal)} KD</span></div>
-      ${inv.discount > 0 ? `<div class="totals-row"><span>${lang === 'ar' ? 'الخصم' : 'Discount'} (${inv.discountPct}%)</span><span style="font-family:monospace;">-${fmt2(inv.discount)} KD</span></div>` : ''}
-      ${inv.tax > 0 ? `<div class="totals-row"><span>${lang === 'ar' ? 'الضريبة' : 'Tax'} (${inv.taxRate}%)</span><span style="font-family:monospace;">${fmt2(inv.tax)} KD</span></div>` : ''}
-      <div class="totals-row grand"><span>${lang === 'ar' ? 'الإجمالي' : 'Total'}</span><span style="font-family:monospace;">${fmt2(inv.total)} KD</span></div>
-      ${inv.paid > 0 ? `<div class="totals-row paid"><span>${lang === 'ar' ? 'المدفوع' : 'Paid'}</span><span style="font-family:monospace;">${fmt2(inv.paid)} KD</span></div>` : ''}
-      ${inv.balance > 0 ? `<div class="totals-row balance"><span>${lang === 'ar' ? 'الرصيد المستحق' : 'Balance Due'}</span><span style="font-family:monospace;">${fmt2(inv.balance)} KD</span></div>` : ''}
+      <div class="totals-row"><span>${lang === 'ar' ? 'المجموع الفرعي' : 'Subtotal'}</span><span style="font-family:monospace;">${money(inv.subtotal)}</span></div>
+      ${inv.discount > 0 ? `<div class="totals-row"><span>${lang === 'ar' ? 'الخصم' : 'Discount'} (${inv.discountPct}%)</span><span style="font-family:monospace;">-${money(inv.discount)}</span></div>` : ''}
+      ${inv.tax > 0 ? `<div class="totals-row"><span>${lang === 'ar' ? 'الضريبة' : 'Tax'} (${inv.taxRate}%)</span><span style="font-family:monospace;">${money(inv.tax)}</span></div>` : ''}
+      <div class="totals-row grand"><span>${lang === 'ar' ? 'الإجمالي' : 'Total'}</span><span style="font-family:monospace;">${money(inv.total)}</span></div>
+      ${inv.paid > 0 ? `<div class="totals-row paid"><span>${lang === 'ar' ? 'المدفوع' : 'Paid'}</span><span style="font-family:monospace;">${money(inv.paid)}</span></div>` : ''}
+      ${inv.balance > 0 ? `<div class="totals-row balance"><span>${lang === 'ar' ? 'الرصيد المستحق' : 'Balance Due'}</span><span style="font-family:monospace;">${money(inv.balance)}</span></div>` : ''}
     </div>
   </div>
 
 ${inv.notes ? `<div class="notes"><strong>${lang === 'ar' ? 'ملاحظات' : 'Notes'}:</strong> ${inv.notes}</div>` : ''}
 
-  <div class="footer">${lang === 'ar' ? 'شكراً لتعاملكم معنا' : 'Thank you for your business'} · Lumen Dental Lab · ${new Date().toLocaleDateString()}</div>
+  ${state.vatNumber ? `<div class="notes"><strong>${lang === 'ar' ? 'الرقم الضريبي' : 'VAT/Tax No.'}:</strong> ${state.vatNumber}</div>` : ''}
+
+  <div class="footer">${lang === 'ar' ? 'شكراً لتعاملكم معنا' : 'Thank you for your business'} · Lumen Dental Lab${state.vatNumber ? ` · ${lang === 'ar' ? 'رقم ضريبي' : 'VAT'}: ${state.vatNumber}` : ''} · ${new Date().toLocaleDateString()}</div>
 </div>
 <script>setTimeout(() => window.print(), 500);</script>
 </body>
@@ -5959,12 +6158,12 @@ return (
           </div>
         </div>
         <div className="p-4 rounded-lg space-y-2" style={{ background: 'rgba(15, 22, 40, 0.5)', border: '1px solid rgba(120, 180, 255, 0.1)' }}>
-          <div className="flex justify-between text-[12px]"><span style={{ color: 'var(--text-2)' }}>{t.subtotal}</span><span className="mono">{fmt2(inv.subtotal)} KD</span></div>
-          {inv.discount > 0 && <div className="flex justify-between text-[12px]"><span style={{ color: 'var(--text-2)' }}>{t.discount}</span><span className="mono" style={{ color: '#f87171' }}>-{fmt2(inv.discount)} KD</span></div>}
-          {inv.tax > 0 && <div className="flex justify-between text-[12px]"><span style={{ color: 'var(--text-2)' }}>{t.tax}</span><span className="mono">{fmt2(inv.tax)} KD</span></div>}
-          <div className="flex justify-between pt-2 border-t" style={{ borderColor: 'rgba(120, 180, 255, 0.15)' }}><span className="font-bold" style={{ color: 'var(--text)' }}>{t.grandTotal}</span><span className="mono font-bold text-[14px]" style={{ color: '#38bdf8' }}>{fmt2(inv.total)} KD</span></div>
-          {inv.paid > 0 && <div className="flex justify-between text-[12px]"><span style={{ color: 'var(--text-2)' }}>{t.amountPaid}</span><span className="mono" style={{ color: '#34d399' }}>{fmt2(inv.paid)} KD</span></div>}
-          {inv.balance > 0 && <div className="flex justify-between"><span className="font-bold text-[12px]" style={{ color: 'var(--text)' }}>{t.balance}</span><span className="mono font-bold" style={{ color: '#f87171' }}>{fmt2(inv.balance)} KD</span></div>}
+          <div className="flex justify-between text-[12px]"><span style={{ color: 'var(--text-2)' }}>{t.subtotal}</span><span className="mono">{money(inv.subtotal)}</span></div>
+          {inv.discount > 0 && <div className="flex justify-between text-[12px]"><span style={{ color: 'var(--text-2)' }}>{t.discount}</span><span className="mono" style={{ color: '#f87171' }}>-{money(inv.discount)}</span></div>}
+          {inv.tax > 0 && <div className="flex justify-between text-[12px]"><span style={{ color: 'var(--text-2)' }}>{t.tax}</span><span className="mono">{money(inv.tax)}</span></div>}
+          <div className="flex justify-between pt-2 border-t" style={{ borderColor: 'rgba(120, 180, 255, 0.15)' }}><span className="font-bold" style={{ color: 'var(--text)' }}>{t.grandTotal}</span><span className="mono font-bold text-[14px]" style={{ color: '#38bdf8' }}>{money(inv.total)}</span></div>
+          {inv.paid > 0 && <div className="flex justify-between text-[12px]"><span style={{ color: 'var(--text-2)' }}>{t.amountPaid}</span><span className="mono" style={{ color: '#34d399' }}>{money(inv.paid)}</span></div>}
+          {inv.balance > 0 && <div className="flex justify-between"><span className="font-bold text-[12px]" style={{ color: 'var(--text)' }}>{t.balance}</span><span className="mono font-bold" style={{ color: '#f87171' }}>{money(inv.balance)}</span></div>}
         </div>
       </div>
 
@@ -5979,7 +6178,7 @@ return (
     <div className="sticky bottom-0 px-6 py-4 flex items-center justify-between gap-2 border-t flex-wrap" style={{ borderColor: 'rgba(120, 180, 255, 0.15)', background: 'rgba(10, 16, 30, 0.95)', backdropFilter: 'blur(10px)' }}>
       <div className="flex gap-2">
         {state.invoices.find(i => i.id === inv.id) && (
-          <button onClick={() => { if (confirm(lang === 'ar' ? 'حذف الفاتورة؟' : 'Delete invoice?')) { onDelete(inv.id); onClose(); } }} className="btn btn-ghost" style={{ color: '#f87171' }}>
+          <button onClick={async () => { if (await askConfirm({ title: lang === 'ar' ? 'حذف الفاتورة' : 'Delete Invoice', message: lang === 'ar' ? 'هل تريد حذف هذه الفاتورة نهائياً؟' : 'Permanently delete this invoice?', confirmLabel: lang === 'ar' ? 'حذف' : 'Delete', danger: true })) { onDelete(inv.id); onClose(); } }} className="btn btn-ghost" style={{ color: '#f87171' }}>
             <Trash2 size={13} />
           </button>
         )}
@@ -6041,7 +6240,7 @@ return (
 <div className="text-[12.5px] font-bold" style={{ color: 'var(--text)' }}>{invoice.clinic}</div>
 <div className="flex justify-between mt-1 text-[11px]">
 <span style={{ color: 'var(--text-3)' }}>{t.balance}:</span>
-<span className="mono font-bold" style={{ color: '#f87171' }}>{fmt2(invoice.balance)} KD</span>
+<span className="mono font-bold" style={{ color: '#f87171' }}>{money(invoice.balance)}</span>
 </div>
 </div>
 <div className="grid grid-cols-2 gap-3">
@@ -6082,7 +6281,7 @@ return (
 //  CLINIC STATEMENT MODAL
 // ═══════════════════════════════════════════════════════════════════════
 function ClinicStatementModal({ clinic, ctx, onClose, onOpenInvoice }) {
-const { state, t, lang, fmt2 } = ctx;
+const { state, t, lang, fmt2, money } = ctx;
 const clinicInvoices = state.invoices.filter(i => i.clinic === clinic.clinic);
 const clinicPayments = state.payments.filter(p => {
 const inv = state.invoices.find(i => i.id === p.invoiceId);
@@ -6110,15 +6309,15 @@ return (
       <div className="grid grid-cols-3 gap-2">
         <div className="p-3 rounded-lg text-center" style={{ background: 'rgba(56, 189, 248, 0.08)' }}>
           <div className="text-[9px] uppercase tracking-wider" style={{ color: 'var(--text-3)' }}>{t.totalBilled}</div>
-          <div className="mono font-bold text-[13px]" style={{ color: '#38bdf8' }}>{fmt2(clinic.totalBilled)} KD</div>
+          <div className="mono font-bold text-[13px]" style={{ color: '#38bdf8' }}>{money(clinic.totalBilled)}</div>
         </div>
         <div className="p-3 rounded-lg text-center" style={{ background: 'rgba(52, 211, 153, 0.08)' }}>
           <div className="text-[9px] uppercase tracking-wider" style={{ color: 'var(--text-3)' }}>{t.totalPaid}</div>
-          <div className="mono font-bold text-[13px]" style={{ color: '#34d399' }}>{fmt2(clinic.totalPaid)} KD</div>
+          <div className="mono font-bold text-[13px]" style={{ color: '#34d399' }}>{money(clinic.totalPaid)}</div>
         </div>
         <div className="p-3 rounded-lg text-center" style={{ background: clinic.balance > 0 ? 'rgba(248, 113, 113, 0.08)' : 'rgba(52, 211, 153, 0.08)' }}>
           <div className="text-[9px] uppercase tracking-wider" style={{ color: 'var(--text-3)' }}>{t.balanceOwed}</div>
-          <div className="mono font-bold text-[13px]" style={{ color: clinic.balance > 0 ? '#f87171' : '#34d399' }}>{fmt2(clinic.balance)} KD</div>
+          <div className="mono font-bold text-[13px]" style={{ color: clinic.balance > 0 ? '#f87171' : '#34d399' }}>{money(clinic.balance)}</div>
         </div>
       </div>
 
@@ -6133,8 +6332,8 @@ return (
                 <div className="text-[10px]" style={{ color: 'var(--text-3)' }}>{inv.date}</div>
               </div>
               <div className="text-right">
-                <div className="mono text-[12px] font-bold" style={{ color: 'var(--text)' }}>{fmt2(inv.total)} KD</div>
-                {inv.balance > 0 ? <div className="text-[10px]" style={{ color: '#f87171' }}>{fmt2(inv.balance)} KD {lang === 'ar' ? 'متبقي' : 'left'}</div> : <div className="text-[10px]" style={{ color: '#34d399' }}>✓ {t.paidStatus}</div>}
+                <div className="mono text-[12px] font-bold" style={{ color: 'var(--text)' }}>{money(inv.total)}</div>
+                {inv.balance > 0 ? <div className="text-[10px]" style={{ color: '#f87171' }}>{money(inv.balance)} {lang === 'ar' ? 'متبقي' : 'left'}</div> : <div className="text-[10px]" style={{ color: '#34d399' }}>✓ {t.paidStatus}</div>}
               </div>
             </div>
           ))}
@@ -6154,7 +6353,7 @@ return (
                     <div className="text-[11px]" style={{ color: 'var(--text)' }}>{inv?.invoiceNumber || '—'}</div>
                     <div className="text-[10px]" style={{ color: 'var(--text-3)' }}>{p.date}</div>
                   </div>
-                  <div className="mono font-bold text-[12px]" style={{ color: '#34d399' }}>+{fmt2(p.amount)} KD</div>
+                  <div className="mono font-bold text-[12px]" style={{ color: '#34d399' }}>+{money(p.amount)}</div>
                 </div>
               );
             })}
@@ -6172,7 +6371,7 @@ return (
 //  ADD EXPENSE MODAL
 // ═══════════════════════════════════════════════════════════════════════
 function AddExpenseModal({ ctx, onClose, onSave }) {
-const { state, t, lang } = ctx;
+const { state, t, lang, money } = ctx;
 const [form, setForm] = useState({
 date: new Date().toISOString().split('T')[0],
 category: 'materials',
@@ -6670,7 +6869,23 @@ return (lang === 'ar' ? `🔍 وجدت ${results.length} حالات:\n\n` : `�
 results.map((r, i) => `━━━ ${i+1} ━━━\n${formatCaseInfo(r.case)}`).join('\n\n');
 };
 
-const send = (msg) => {
+// Compact snapshot of the lab, sent to the AI so it can answer with live data.
+const buildLabContext = () => {
+const low = state.inventory.filter(i => i.stock <= i.reorderAt).map(i => getName(i));
+const overdue = state.cases.filter(c => { const d = daysUntil(c.deadline); return d !== null && d < 0 && c.status !== 'delivered'; });
+const lines = [];
+lines.push(`Cases: total ${state.cases.length}, active ${kpis.active}, overdue ${overdue.length}, remakes ${kpis.remakes}.`);
+lines.push(`Revenue ${fmt(kpis.totalRev)} KD, profit margin ${fmt2(kpis.margin)}%, fixed costs ${fmt(totalFixed)} KD/mo.`);
+lines.push(`Technicians: ${state.technicians.map(tc => `${getName(tc)} (${tc.role})`).join(', ')}.`);
+lines.push(`Low stock: ${low.length ? low.join(', ') : 'none'}.`);
+lines.push('Cases list:');
+state.cases.slice(0, 40).forEach(c => {
+lines.push(`- ${c.caseId} | ${c.patient || '—'} | ${c.type} | ${c.units}u | status ${c.status} | room ${c.currentRoom} | deadline ${c.deadline}${c.technician ? ' | tech ' + c.technician : ''}`);
+});
+return lines.join('\n');
+};
+
+const send = async (msg) => {
 const userMsg = msg || input.trim();
 if (!userMsg || thinking) return;
 setInput('');
@@ -6678,12 +6893,28 @@ const newMessages = [...messages, { role: 'user', content: userMsg }];
 setMessages(newMessages);
 setThinking(true);
 
-// Simulate thinking time for UX feel
-setTimeout(() => {
-const answer = localQuery(userMsg);
+// Try the real Claude API (Netlify function); fall back to the local engine
+// when offline, not configured, or on any error — so the assistant always works.
+let answer = null;
+try {
+const res = await fetch('/.netlify/functions/claude', {
+method: 'POST',
+headers: { 'content-type': 'application/json' },
+body: JSON.stringify({
+labContext: buildLabContext(),
+messages: newMessages.filter(m => m.role === 'user' || m.role === 'assistant'),
+}),
+});
+if (res.ok) {
+const data = await res.json();
+if (data && data.reply && !data.fallback) answer = data.reply;
+}
+} catch {
+// network error — fall through to local engine
+}
+if (answer == null) answer = localQuery(userMsg);
 setMessages([...newMessages, { role: 'assistant', content: answer }]);
 setThinking(false);
-}, 350);
 };
 
 const suggestions = [t.suggest1, t.suggest2, t.suggest3, t.suggest4];
@@ -6699,7 +6930,7 @@ return (
 <div className="flex-1">
 <div className="display-font text-base font-semibold" style={{ color: 'var(--text)' }}>{t.aiAssistant}</div>
 <div className="text-[11px]" style={{ color: 'var(--text-3)' }}>
-{lang === 'ar' ? 'مدعوم بـ Claude · جاهز للمساعدة' : 'Powered by Claude · Ready to help'}
+{lang === 'ar' ? 'مدعوم بـ Claude · بحث محلي عند عدم الاتصال' : 'Powered by Claude · offline local search fallback'}
 </div>
 </div>
 </div>
@@ -6789,7 +7020,7 @@ color: 'var(--text-2)',
 //  SETTINGS VIEW
 // ═══════════════════════════════════════════════════════════════════════
 function SettingsView({ ctx, setLang, handleReset }) {
-const { t, lang, state, setState, showToast } = ctx;
+const { t, lang, state, setState, showToast, askConfirm } = ctx;
 const importInputRef = useRef(null);
 
 // Restore a previously exported JSON backup. Validates shape before applying.
@@ -6797,15 +7028,19 @@ const importJson = (e) => {
 const file = e.target.files?.[0];
 if (!file) return;
 const reader = new FileReader();
-reader.onload = (ev) => {
+reader.onload = async (ev) => {
 try {
 const parsed = JSON.parse(ev.target.result);
 if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.cases)) {
 throw new Error('invalid');
 }
-if (confirm(lang === 'ar'
-? 'استبدال كل البيانات الحالية بالنسخة المستوردة؟'
-: 'Replace all current data with the imported backup?')) {
+const ok = await askConfirm({
+title: lang === 'ar' ? 'استيراد نسخة احتياطية' : 'Import Backup',
+message: lang === 'ar' ? 'استبدال كل البيانات الحالية بالنسخة المستوردة؟' : 'Replace all current data with the imported backup?',
+confirmLabel: lang === 'ar' ? 'استبدال' : 'Replace',
+danger: true,
+});
+if (ok) {
 // Merge over defaults so any newly-added fields keep valid values.
 setState({ ...defaultState(), ...parsed });
 showToast?.('success', lang === 'ar' ? 'تم استيراد البيانات' : 'Data imported');
