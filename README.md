@@ -38,13 +38,16 @@ The assistant calls Claude through a serverless function
 (`netlify/functions/claude.ts`) so the API key stays server-side. Pick **one**
 provider and set its key as a site environment variable in Netlify:
 
-- **Google Gemini (free tier)** — `GEMINI_API_KEY` (get one at
-  https://aistudio.google.com/apikey). Optional `GEMINI_MODEL`
+- **Groq (free, recommended)** — `GROQ_API_KEY` (get one at
+  https://console.groq.com/keys). Optional `GROQ_MODEL`
+  (defaults to `llama-3.3-70b-versatile`).
+- **Google Gemini (free tier, region-dependent)** — `GEMINI_API_KEY` (get one
+  at https://aistudio.google.com/apikey). Optional `GEMINI_MODEL`
   (defaults to `gemini-2.0-flash`).
 - **Anthropic Claude (paid)** — `ANTHROPIC_API_KEY`. Optional `CLAUDE_MODEL`
   (defaults to `claude-opus-4-8`).
 
-If `GEMINI_API_KEY` is set it is used first. Without any key, the assistant
+Selection order is Groq → Gemini → Claude. Without any key, the assistant
 automatically falls back to a fast **offline local search** engine over your
 lab data — so it works either way.
 

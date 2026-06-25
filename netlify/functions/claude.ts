@@ -2,17 +2,20 @@
 //
 // Provider is chosen by which environment variable is set (set ONE in the
 // Netlify site settings):
+//   GROQ_API_KEY       -> Groq (free, fast).        Optional GROQ_MODEL.
 //   GEMINI_API_KEY     -> Google Gemini (free tier). Optional GEMINI_MODEL.
 //   ANTHROPIC_API_KEY  -> Anthropic Claude (paid).   Optional CLAUDE_MODEL.
-// If neither is set, the client falls back to its offline local search engine.
+// If none is set, the client falls back to its offline local search engine.
 //
 // Frontend calls POST /.netlify/functions/claude with:
 //   { messages: [{ role: 'user'|'assistant', content: string }], labContext: string }
 // and receives { reply: string } on success.
 
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
+const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-opus-4-8';
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
@@ -54,6 +57,27 @@ async function askGemini(apiKey: string, messages: Array<{ role: string; content
   return { ok: true as const, reply };
 }
 
+// --- Groq (free, OpenAI-compatible) ---
+async function askGroq(apiKey: string, messages: Array<{ role: string; content: string }>, system: string) {
+  const res = await fetch(GROQ_URL, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      messages: [{ role: 'system', content: system }, ...messages],
+      max_tokens: 1024,
+      temperature: 0.4,
+    }),
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    return { ok: false as const, status: res.status, detail };
+  }
+  const data: any = await res.json();
+  const reply = (data?.choices?.[0]?.message?.content || '').trim();
+  return { ok: true as const, reply };
+}
+
 // --- Anthropic Claude (paid) ---
 async function askClaude(apiKey: string, messages: Array<{ role: string; content: string }>, system: string) {
   const res = await fetch(ANTHROPIC_URL, {
@@ -80,9 +104,10 @@ async function askClaude(apiKey: string, messages: Array<{ role: string; content
 export default async (req: Request): Promise<Response> => {
   if (req.method !== 'POST') return json(405, { error: 'Method not allowed' });
 
+  const groqKey = process.env.GROQ_API_KEY;
   const geminiKey = process.env.GEMINI_API_KEY;
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
-  if (!geminiKey && !anthropicKey) {
+  if (!groqKey && !geminiKey && !anthropicKey) {
     // No provider configured — client should use its offline fallback.
     return json(503, { error: 'AI not configured', fallback: true });
   }
@@ -104,8 +129,10 @@ export default async (req: Request): Promise<Response> => {
   const system = buildSystem(payload.labContext);
 
   try {
-    // Prefer the free provider (Gemini) when its key is present.
-    const result = geminiKey
+    // Prefer the free providers when their keys are present (Groq, then Gemini).
+    const result = groqKey
+      ? await askGroq(groqKey, messages, system)
+      : geminiKey
       ? await askGemini(geminiKey, messages, system)
       : await askClaude(anthropicKey as string, messages, system);
 
