@@ -13,7 +13,7 @@ Flame, Layers, Smile, Bone, Briefcase, Stethoscope, Wrench, Save,
 RefreshCw, Eye, EyeOff, Archive, ArrowUpRight, ArrowDownRight, Crown,
 Edit3, Copy, MoreHorizontal, Bell, Cpu, FileSpreadsheet, FileImage,
 GitBranch, Clock, ArrowRight, MapPin, QrCode, Camera, ScanLine,
-CheckCircle2, CircleDot, LogIn, History, Hourglass, Calendar, User
+CheckCircle2, CircleDot, LogIn, History, Hourglass, Calendar, User, Tv, Maximize2
 } from 'lucide-react';
 import {
 ResponsiveContainer, LineChart, Line, AreaChart, Area, BarChart, Bar,
@@ -62,7 +62,7 @@ tagline: "نظام إدارة المختبر الذكي",
 dashboard: "لوحة التحكم", calculator: "حاسبة التكلفة", cases: "إدارة الحالات",
 inventory: "المخزون", technicians: "الفنيون", analytics: "التحليلات",
 aiAssistant: "المساعد الذكي", settings: "الإعدادات",
-flow: "خط الإنتاج", scanner: "مسح QR",
+flow: "خط الإنتاج", scanner: "مسح QR", display: "شاشة العرض",
 overview: "نظرة عامة", liveStats: "إحصائيات مباشرة",
 totalRevenue: "الإيرادات الإجمالية", monthlyProfit: "الربح الشهري",
 activeCases: "الحالات النشطة", remakeRate: "معدل الإعادة",
@@ -397,7 +397,7 @@ tagline: "Intelligent Lab Management System",
 dashboard: "Dashboard", calculator: "Cost Calculator", cases: "Case Management",
 inventory: "Inventory", technicians: "Technicians", analytics: "Analytics",
 aiAssistant: "AI Assistant", settings: "Settings",
-flow: "Production Flow", scanner: "QR Scanner",
+flow: "Production Flow", scanner: "QR Scanner", display: "Display",
 overview: "Overview", liveStats: "Live Statistics",
 totalRevenue: "Total Revenue", monthlyProfit: "Monthly Profit",
 activeCases: "Active Cases", remakeRate: "Remake Rate",
@@ -1441,6 +1441,14 @@ input[type=number] { -moz-appearance: textfield; }
 .pulse-soft { animation: pulse-soft 2s ease-in-out infinite; }
 .scan-line { animation: scanLine 2.5s ease-in-out infinite; }
 
+/* Wallboard marquee ticker */
+@keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+.marquee-track { display: inline-flex; align-items: center; white-space: nowrap; animation: marquee 40s linear infinite; }
+.marquee-wrap:hover .marquee-track { animation-play-state: paused; }
+@keyframes blink-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+.blink-dot { animation: blink-dot 1.1s ease-in-out infinite; }
+@keyframes board-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
 .data-card { transition: all 0.2s; }
 .data-card:hover { transform: translateY(-2px); border-color: rgba(6, 182, 212, 0.35); box-shadow: 0 14px 32px -16px rgba(16, 24, 40, 0.25); }
 
@@ -1522,6 +1530,7 @@ body[dir="rtl"] .accent-bar { border-radius: 3px 0 0 3px; }
   <div className="p-4 md:p-8 max-w-[1600px] mx-auto">
     {view === 'dashboard' && <Dashboard ctx={ctx} setView={setView} />}
     {view === 'flow' && <ProductionFlowView ctx={ctx} setView={setView} />}
+    {view === 'display' && <DisplayBoard ctx={ctx} />}
     {view === 'scanner' && <ScannerView ctx={ctx} />}
     {view === 'cases' && <CasesView ctx={ctx} />}
     {view === 'inventory' && <InventoryView ctx={ctx} />}
@@ -1601,6 +1610,7 @@ function Sidebar({ view, setView, t, isRtl, lang, mobileMenuOpen, setMobileMenuO
 const navItems = [
 { id: 'dashboard', icon: LayoutDashboard, label: t.dashboard, group: 'main' },
 { id: 'flow', icon: GitBranch, label: t.flow, group: 'main' },
+{ id: 'display', icon: Tv, label: t.display, group: 'main' },
 { id: 'scanner', icon: ScanLine, label: t.scanner, group: 'main' },
 { id: 'cases', icon: Briefcase, label: t.cases, group: 'main' },
 { id: 'inventory', icon: Boxes, label: t.inventory, group: 'ops' },
@@ -1730,7 +1740,7 @@ const viewTitles = {
 dashboard: t.dashboard, calculator: t.calculator, cases: t.cases,
 inventory: t.inventory, technicians: t.technicians,
 accounting: t.accounting, analytics: t.analytics,
-ai: t.aiAssistant, settings: t.settings, flow: t.flow, scanner: t.scanner,
+ai: t.aiAssistant, settings: t.settings, flow: t.flow, scanner: t.scanner, display: t.display,
 };
 
 return (
@@ -2089,6 +2099,197 @@ style={{ background: `radial-gradient(circle, ${color}, transparent)` }}
 </div>
 <div className="display-font text-2xl font-semibold mono" style={{ color: 'var(--text)' }}>{value}</div>
 <div className="text-[11px] mt-1" style={{ color: 'var(--text-3)' }}>{sub}</div>
+</div>
+);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  DISPLAY BOARD (TV wallboard: rooms + alert ticker)
+// ═══════════════════════════════════════════════════════════════════════
+function DisplayBoard({ ctx }) {
+const { state: ctxState, t, lang, getName } = ctx;
+const isRtl = lang === 'ar';
+const boardRef = useRef(null);
+const [now, setNow] = useState(Date.now());
+const [override, setOverride] = useState(null);
+const [fs, setFs] = useState(false);
+
+// Live: tick the clock, poll localStorage, and react to edits from other tabs
+// on the same browser (so the TV tab stays in sync with the lab PC).
+useEffect(() => {
+const clock = setInterval(() => setNow(Date.now()), 1000);
+const readLS = () => {
+try { const raw = window.localStorage.getItem('dental-state'); if (raw) setOverride(JSON.parse(raw)); } catch {}
+};
+const poll = setInterval(readLS, 15000);
+const onStorage = (e) => { if (e.key === 'dental-state' && e.newValue) { try { setOverride(JSON.parse(e.newValue)); } catch {} } };
+const onFs = () => setFs(!!document.fullscreenElement);
+window.addEventListener('storage', onStorage);
+document.addEventListener('fullscreenchange', onFs);
+return () => { clearInterval(clock); clearInterval(poll); window.removeEventListener('storage', onStorage); document.removeEventListener('fullscreenchange', onFs); };
+}, []);
+
+const state = override || ctxState;
+const activeCases = (state.cases || []).filter(c => c.status !== 'delivered');
+
+const urgency = (c) => {
+const d = daysUntil(c.deadline);
+if (d === null) return { key: 'none', color: '#64748b' };
+if (d < 0) return { key: 'overdue', color: '#fb7185' };
+if (d === 0) return { key: 'today', color: '#fbbf24' };
+if (d <= 2) return { key: 'soon', color: '#f59e0b' };
+return { key: 'ok', color: '#34d399' };
+};
+
+const byRoom = ROOMS.map(r => ({ room: r, cases: activeCases.filter(c => c.currentRoom === r.id) }));
+const today = new Date().toISOString().split('T')[0];
+const kDue = activeCases.filter(c => c.deadline === today).length;
+const kOver = activeCases.filter(c => { const d = daysUntil(c.deadline); return d !== null && d < 0; }).length;
+const kUrgent = activeCases.filter(c => { const d = daysUntil(c.deadline); return d !== null && d >= 0 && d <= 1; }).length;
+
+// Build ticker alerts (overdue -> urgent -> stuck -> low stock)
+const alerts = [];
+activeCases.forEach(c => {
+const d = daysUntil(c.deadline);
+if (d !== null && d < 0) alerts.push({ color: '#fb7185', icon: '⏰', text: `${lang === 'ar' ? 'متأخرة' : 'OVERDUE'}: ${c.caseId} · ${c.patient || ''} · ${Math.abs(d)}${lang === 'ar' ? 'ي' : 'd'}` });
+});
+activeCases.forEach(c => {
+const d = daysUntil(c.deadline);
+if (d !== null && d >= 0 && d <= 1) alerts.push({ color: '#fbbf24', icon: '⚡', text: `${lang === 'ar' ? 'عاجلة' : 'URGENT'}: ${c.caseId} · ${c.patient || ''} · ${d === 0 ? (lang === 'ar' ? 'اليوم' : 'today') : (lang === 'ar' ? 'غداً' : 'tomorrow')}` });
+});
+activeCases.forEach(c => {
+const last = c.roomHistory && c.roomHistory.length ? c.roomHistory[c.roomHistory.length - 1] : null;
+if (!last) return;
+const hrs = hoursIn(last.at);
+const sla = ROOM_SLA_HOURS[c.currentRoom] || 12;
+if (hrs > sla * 1.5) alerts.push({ color: '#c084fc', icon: '⏳', text: `${lang === 'ar' ? 'متوقفة' : 'STUCK'}: ${c.caseId} · ${lang === 'ar' ? ROOM_MAP[c.currentRoom]?.ar : ROOM_MAP[c.currentRoom]?.en} · ${Math.round(hrs)}${t.hours}` });
+});
+(state.inventory || []).forEach(it => {
+if (it.stock <= it.reorderAt) alerts.push({ color: '#38bdf8', icon: '📦', text: `${lang === 'ar' ? 'مخزون منخفض' : 'LOW STOCK'}: ${getName(it)} · ${it.stock}/${it.reorderAt}` });
+});
+if (alerts.length === 0) alerts.push({ color: '#34d399', icon: '✓', text: lang === 'ar' ? 'كل الحالات ضمن الموعد — لا توجد تنبيهات' : 'All cases on track — no alerts' });
+
+const clock = new Date(now);
+const timeStr = clock.toLocaleTimeString(lang === 'ar' ? 'ar-EG' : 'en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+const dateStr = clock.toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' });
+
+const toggleFs = () => {
+const el = boardRef.current;
+if (!document.fullscreenElement) el?.requestFullscreen?.(); else document.exitFullscreen?.();
+};
+
+const Kpi = ({ label, value, color }) => (
+<div className="rounded-2xl px-5 py-3 text-center" style={{ background: `${color}1a`, border: `1px solid ${color}40`, minWidth: 130 }}>
+<div className="mono font-black leading-none" style={{ color, fontSize: 'clamp(28px, 3.2vw, 52px)' }}>{value}</div>
+<div className="uppercase font-bold tracking-widest mt-1" style={{ color: '#9fb0c8', fontSize: 'clamp(9px,0.8vw,12px)' }}>{label}</div>
+</div>
+);
+
+const tickerItems = [...alerts, ...alerts]; // duplicate for seamless loop
+
+return (
+<div
+ref={boardRef}
+dir={isRtl ? 'rtl' : 'ltr'}
+className="rounded-3xl overflow-hidden flex flex-col"
+style={{
+background: 'radial-gradient(ellipse 1200px 700px at 20% -10%, rgba(34,211,238,0.12), transparent 60%), radial-gradient(ellipse 1000px 600px at 100% 0%, rgba(59,130,246,0.12), transparent 60%), linear-gradient(160deg, #0a1224, #070d1a 60%)',
+color: '#e8eef9',
+height: fs ? '100vh' : 'calc(100vh - 150px)',
+minHeight: 520,
+border: '1px solid rgba(120,180,255,0.12)',
+fontFamily: lang === 'ar' ? "'Tajawal','Manrope',sans-serif" : "'Manrope',sans-serif",
+}}
+>
+{/* Header */}
+<div className="flex items-center justify-between gap-4 px-6 py-4 shrink-0" style={{ borderBottom: '1px solid rgba(120,180,255,0.12)', background: 'rgba(255,255,255,0.02)' }}>
+<div className="flex items-center gap-3">
+<div className="w-12 h-12 rounded-2xl flex items-center justify-center glow-cyan" style={{ background: 'linear-gradient(135deg, #06b6d4, #2563eb)' }}>
+<Stethoscope size={24} strokeWidth={2.2} color="#fff" />
+</div>
+<div>
+<div className="display-font font-bold leading-tight" style={{ color: '#fff', fontSize: 'clamp(18px,2vw,30px)' }}>{t.brand}</div>
+<div className="uppercase tracking-widest flex items-center gap-2" style={{ color: '#22d3ee', fontSize: 'clamp(9px,0.9vw,12px)' }}>
+<span className="w-2 h-2 rounded-full blink-dot" style={{ background: '#34d399', display: 'inline-block' }} />
+{lang === 'ar' ? 'الشاشة المباشرة' : 'Live Board'}
+</div>
+</div>
+</div>
+<div className="flex items-center gap-4">
+<div className="text-right">
+<div className="mono font-black leading-none" style={{ color: '#fff', fontSize: 'clamp(22px,2.6vw,44px)' }}>{timeStr}</div>
+<div style={{ color: '#9fb0c8', fontSize: 'clamp(10px,1vw,15px)' }}>{dateStr}</div>
+</div>
+<button onClick={toggleFs} className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: 'rgba(120,180,255,0.1)', border: '1px solid rgba(120,180,255,0.2)', color: '#cfe1ff' }} title={lang === 'ar' ? 'ملء الشاشة' : 'Fullscreen'}>
+<Maximize2 size={18} />
+</button>
+</div>
+</div>
+
+{/* KPI strip */}
+<div className="flex items-center gap-3 px-6 py-3 shrink-0 overflow-x-auto" style={{ borderBottom: '1px solid rgba(120,180,255,0.08)' }}>
+<Kpi label={t.activeCases} value={activeCases.length} color="#22d3ee" />
+<Kpi label={t.deliveryToday} value={kDue} color="#34d399" />
+<Kpi label={t.urgent} value={kUrgent} color="#fbbf24" />
+<Kpi label={t.overdue} value={kOver} color="#fb7185" />
+</div>
+
+{/* Rooms grid */}
+<div className="flex-1 min-h-0 p-4 grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gridAutoRows: '1fr' }}>
+{byRoom.map(({ room, cases }) => {
+const RoomIcon = room.icon;
+const overdueHere = cases.some(c => { const d = daysUntil(c.deadline); return d !== null && d < 0; });
+return (
+<div key={room.id} className="rounded-2xl flex flex-col overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${overdueHere ? 'rgba(251,113,133,0.4)' : 'rgba(120,180,255,0.12)'}`, borderTop: `3px solid ${room.color}`, animation: 'board-in 0.4s ease-out backwards' }}>
+<div className="flex items-center gap-2 px-3 py-2.5" style={{ background: `${room.color}14` }}>
+<div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${room.color}26` }}>
+<RoomIcon size={16} color={room.color} />
+</div>
+<div className="min-w-0 flex-1">
+<div className="font-bold truncate" style={{ color: '#fff', fontSize: 'clamp(12px,1vw,16px)' }}>{lang === 'ar' ? room.ar : room.en}</div>
+</div>
+<div className="mono font-black px-2 py-0.5 rounded-lg" style={{ background: `${room.color}26`, color: room.color, fontSize: 'clamp(14px,1.4vw,22px)' }}>{cases.length}</div>
+</div>
+<div className="flex-1 min-h-0 scroll-y p-2 space-y-1.5">
+{cases.length === 0 ? (
+<div className="h-full flex items-center justify-center text-center py-4" style={{ color: '#5d6e92', fontSize: 'clamp(10px,0.9vw,13px)' }}>{t.noCases}</div>
+) : cases.slice(0, 7).map(c => {
+const u = urgency(c);
+const last = c.roomHistory && c.roomHistory.length ? c.roomHistory[c.roomHistory.length - 1] : null;
+return (
+<div key={c.id} className="rounded-lg px-2.5 py-1.5 flex items-center gap-2" style={{ background: 'rgba(255,255,255,0.04)', borderLeft: `3px solid ${u.color}` }}>
+<div className="min-w-0 flex-1">
+<div className="mono font-bold truncate" style={{ color: '#dbe6f7', fontSize: 'clamp(10px,0.85vw,13px)' }}>{c.caseId}</div>
+<div className="truncate" style={{ color: '#9fb0c8', fontSize: 'clamp(9px,0.8vw,12px)' }}>{c.patient || '—'} · {t[c.type] || c.type}</div>
+</div>
+<div className="mono shrink-0" style={{ color: u.color, fontSize: 'clamp(9px,0.75vw,11px)' }}>{last ? timeSince(last.at, lang) : ''}</div>
+</div>
+);
+})}
+{cases.length > 7 && (
+<div className="text-center mono py-1" style={{ color: '#5d6e92', fontSize: 'clamp(9px,0.8vw,12px)' }}>+{cases.length - 7} {lang === 'ar' ? 'أكثر' : 'more'}</div>
+)}
+</div>
+</div>
+);
+})}
+</div>
+
+{/* Animated alert ticker */}
+<div className="marquee-wrap shrink-0 relative overflow-hidden flex items-center" style={{ height: 56, background: 'linear-gradient(90deg, rgba(251,113,133,0.12), rgba(37,99,235,0.12))', borderTop: '1px solid rgba(120,180,255,0.18)' }}>
+<div className="shrink-0 h-full flex items-center gap-2 px-4 font-black uppercase tracking-wider" style={{ background: 'rgba(7,13,26,0.6)', color: '#fff', fontSize: 'clamp(11px,1vw,15px)', borderRight: isRtl ? 'none' : '1px solid rgba(120,180,255,0.2)', borderLeft: isRtl ? '1px solid rgba(120,180,255,0.2)' : 'none', zIndex: 2 }}>
+<Bell size={16} color="#fbbf24" /> {t.notifications}
+</div>
+<div className="marquee-track" style={{ paddingInline: 12 }}>
+{tickerItems.map((a, i) => (
+<span key={i} className="inline-flex items-center gap-2 mx-3 px-3 py-1.5 rounded-full" style={{ background: `${a.color}1f`, border: `1px solid ${a.color}55`, color: '#eaf2ff', fontSize: 'clamp(12px,1.05vw,17px)', fontWeight: 600 }}>
+<span style={{ fontSize: '1.1em' }}>{a.icon}</span>
+<span style={{ color: a.color, fontWeight: 800 }}>•</span>
+{a.text}
+</span>
+))}
+</div>
+</div>
 </div>
 );
 }
