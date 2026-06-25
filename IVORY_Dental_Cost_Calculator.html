@@ -341,12 +341,16 @@
         <div class="panel-head"><h2 data-t="pricingTitle">أسعار البيع</h2></div>
         <div class="hint" data-t="pricingHint">سعر بيع السن الواحد للعيادة.</div>
         <div class="single-row">
+          <label data-t="currencyLabel">العملة<span class="desc-mini" data-t="currencyDesc">تظهر بجانب كل القيم</span></label>
+          <input type="text" id="currency" maxlength="6" style="width:90px;text-align:center;font-weight:700">
+        </div>
+        <div class="single-row">
           <label data-t="sellLow">سعر بيع منخفض<span class="desc-mini" data-t="sellLowDesc">السيناريو المتحفظ</span></label>
-          <input type="number" id="sellLow" step="any"><span class="unit">KD</span>
+          <input type="number" id="sellLow" step="any"><span class="unit cur-static">KD</span>
         </div>
         <div class="single-row">
           <label data-t="sellHigh">سعر بيع مرتفع<span class="desc-mini" data-t="sellHighDesc">السيناريو المتفائل</span></label>
-          <input type="number" id="sellHigh" step="any"><span class="unit">KD</span>
+          <input type="number" id="sellHigh" step="any"><span class="unit cur-static">KD</span>
         </div>
         <div class="single-row">
           <label data-t="zirPct">نسبة الزيركون<span class="desc-mini" data-t="zirDesc">الباقي فينير/إيماكس</span></label>
@@ -363,7 +367,7 @@
         <div class="target-input-row">
           <label data-t="targetLabel">أريد أن أربح:</label>
           <input type="number" id="targetProfit" step="any">
-          <span class="unit">KD / <span data-t="month">شهر</span></span>
+          <span class="unit"><span class="cur-static">KD</span> / <span data-t="month">شهر</span></span>
         </div>
       </div>
 
@@ -418,6 +422,7 @@ var TR={
   fixedTitle:"المصاريف الثابتة", fixedHint:"مصاريف شهرية لا تتغير بعدد الأسنان.",
   pricingTitle:"أسعار البيع", pricingHint:"سعر بيع السن الواحد للعيادة.",
   addItem:"إضافة بند", addSuggest:"مقترحات (اضغط للإضافة):", addBtn:"إضافة",
+  currencyLabel:"العملة", currencyDesc:"تظهر بجانب كل القيم",
   sellLow:"سعر بيع منخفض", sellLowDesc:"السيناريو المتحفظ",
   sellHigh:"سعر بيع مرتفع", sellHighDesc:"السيناريو المتفائل",
   zirPct:"نسبة الزيركون", zirDesc:"الباقي فينير/إيماكس",
@@ -427,7 +432,7 @@ var TR={
   scenariosTitle:"السيناريوهات", scenariosHint:"اختر سيناريو لعرض جدوله ورسمه البياني.",
   tableHint:"عدّل الكميات (بالأزرق) لتتحدث النتائج فوراً.", addQtyRow:"＋ إضافة كمية",
   beTitle:"الملخص لكل سيناريو",
-  footerNote:"جميع القيم بالدينار الكويتي · الأرقام تتحدث تلقائياً مع كل تعديل",
+  footerNote:"جميع القيم بالعملة التي تختارها · الأرقام تتحدث تلقائياً مع كل تعديل",
   thQty:"أسنان/شهر", thCostUnit:"تكلفة/سن", thRevenue:"إيراد", thCost:"تكلفة كلية",
   thProfit:"الربح", thMargin:"هامش %", thBE:"تعادل",
   units:"سن", perMonth:"سن / شهر", block:"بلوك", sell:"بيع", count:"عدد",
@@ -450,6 +455,7 @@ var TR={
   fixedTitle:"Fixed Expenses", fixedHint:"Monthly costs that don't change with unit count.",
   pricingTitle:"Sell Prices", pricingHint:"Sell price per single unit to the clinic.",
   addItem:"Add item", addSuggest:"Suggestions (tap to add):", addBtn:"Add",
+  currencyLabel:"Currency", currencyDesc:"Shown next to all values",
   sellLow:"Low sell price", sellLowDesc:"Conservative scenario",
   sellHigh:"High sell price", sellHighDesc:"Optimistic scenario",
   zirPct:"Zirconia share", zirDesc:"Remainder veneer/emax",
@@ -459,7 +465,7 @@ var TR={
   scenariosTitle:"Scenarios", scenariosHint:"Pick a scenario to view its table and chart.",
   tableHint:"Edit quantities (in blue) to update results instantly.", addQtyRow:"＋ Add quantity",
   beTitle:"Summary per Scenario",
-  footerNote:"All values in Kuwaiti Dinar · numbers update automatically",
+  footerNote:"All values in your chosen currency · numbers update automatically",
   thQty:"Units/Mo", thCostUnit:"Cost/Unit", thRevenue:"Revenue", thCost:"Total Cost",
   thProfit:"Profit", thMargin:"Margin %", thBE:"B-Even",
   units:"units", perMonth:"units / month", block:"block", sell:"sell", count:"count",
@@ -503,7 +509,7 @@ function defaultState(){
    {id:uid(),labelAr:"مصاريف متنوعة",labelEn:"Miscellaneous",descAr:"نثريات",descEn:"Sundry",val:200}
   ],
   quantities:[100,300,500,1000],
-  sellLow:25, sellHigh:35, zirPct:80, targetProfit:3000
+  sellLow:25, sellHigh:35, zirPct:80, targetProfit:3000, currency:"KD"
  };
 }
 
@@ -548,6 +554,8 @@ function fmt3(n){ return (Math.round(n*1000)/1000).toFixed(3); }
 function esc(s){ return (s||"").replace(/"/g,'&quot;'); }
 function L(it){ return lang==="ar"?it.labelAr:(it.labelEn||it.labelAr); }
 function D(it){ return lang==="ar"?(it.descAr||""):(it.descEn||it.descAr||""); }
+function CUR(){ return (state&&state.currency!=null)?state.currency:""; }
+function syncCurrency(){ var c=CUR(), els=document.querySelectorAll(".cur-static"); for(var i=0;i<els.length;i++) els[i].textContent=c; }
 
 function loadState(){
  try{ var lg=localStorage.getItem(LANG_KEY); if(lg==="ar"||lg==="en") lang=lg; }catch(e){}
@@ -588,10 +596,10 @@ function calc(qty,mat,fixed,sell){
 function scenarios(){
  var t=TR[lang], mi=materialPerTooth("ivoclar"), mk=materialPerTooth("korean");
  return [
-  {full:t.ivoclarName+" · "+state.sellLow+" KD", mat:mi, sell:state.sellLow, c:"#9B886F", brand:t.ivoclarName, blockType:"blockIvoclar"},
-  {full:t.ivoclarName+" · "+state.sellHigh+" KD", mat:mi, sell:state.sellHigh, c:"#8A7C6C", brand:t.ivoclarName, blockType:"blockIvoclar"},
-  {full:t.koreanName+" · "+state.sellLow+" KD", mat:mk, sell:state.sellLow, c:"#C9A89E", brand:t.koreanName, blockType:"blockKorean"},
-  {full:t.koreanName+" · "+state.sellHigh+" KD", mat:mk, sell:state.sellHigh, c:"#B6928A", brand:t.koreanName, blockType:"blockKorean"}
+  {full:t.ivoclarName+" · "+state.sellLow+" "+CUR(), mat:mi, sell:state.sellLow, c:"#9B886F", brand:t.ivoclarName, blockType:"blockIvoclar"},
+  {full:t.ivoclarName+" · "+state.sellHigh+" "+CUR(), mat:mi, sell:state.sellHigh, c:"#8A7C6C", brand:t.ivoclarName, blockType:"blockIvoclar"},
+  {full:t.koreanName+" · "+state.sellLow+" "+CUR(), mat:mk, sell:state.sellLow, c:"#C9A89E", brand:t.koreanName, blockType:"blockKorean"},
+  {full:t.koreanName+" · "+state.sellHigh+" "+CUR(), mat:mk, sell:state.sellHigh, c:"#B6928A", brand:t.koreanName, blockType:"blockKorean"}
  ];
 }
 
@@ -601,10 +609,10 @@ function renderMaterials(){
  state.materials.forEach(function(m){
   var isBlock=(m.type==="blockIvoclar"||m.type==="blockKorean"||m.type==="glaze"), v;
   if(isBlock){
-   v='<div class="item-val-wrap"><input class="item-val" type="number" step="any" value="'+m.price+'" oninput="updMat(\''+m.id+'\',\'price\',this.value)"><span class="item-unit">KD</span></div>'+
+   v='<div class="item-val-wrap"><input class="item-val" type="number" step="any" value="'+m.price+'" oninput="updMat(\''+m.id+'\',\'price\',this.value)"><span class="item-unit">'+CUR()+'</span></div>'+
      '<div class="item-val-wrap" style="margin-top:5px"><input class="item-val item-mult" type="number" step="any" value="'+m.perBlock+'" oninput="updMat(\''+m.id+'\',\'perBlock\',this.value)"><span class="item-unit">'+(lang==="ar"?"سن":"u")+'</span></div>';
   } else {
-   v='<div class="item-val-wrap"><input class="item-val" type="number" step="any" value="'+(m.val||0)+'" oninput="updMat(\''+m.id+'\',\'val\',this.value)"><span class="item-unit">KD'+t.perTooth+'</span></div>';
+   v='<div class="item-val-wrap"><input class="item-val" type="number" step="any" value="'+(m.val||0)+'" oninput="updMat(\''+m.id+'\',\'val\',this.value)"><span class="item-unit">'+CUR()+t.perTooth+'</span></div>';
   }
   var row=document.createElement("div"); row.className="item-row";
   row.innerHTML='<div class="item-main"><input class="item-label-edit" value="'+esc(L(m))+'" oninput="updMatTxt(\''+m.id+'\',\'label\',this.value)"><input class="item-desc" value="'+esc(D(m))+'" placeholder="'+t.descPH+'" oninput="updMatTxt(\''+m.id+'\',\'desc\',this.value)"></div><div>'+v+'</div><button class="del-btn" onclick="delItem(\'materials\',\''+m.id+'\')">×</button>';
@@ -616,7 +624,7 @@ function renderSalaries(){
  state.salaries.forEach(function(s){
   var row=document.createElement("div"); row.className="item-row";
   row.innerHTML='<div class="item-main"><input class="item-label-edit" value="'+esc(L(s))+'" oninput="updSal(\''+s.id+'\',\'label\',this.value)"><input class="item-desc" value="'+esc(D(s))+'" placeholder="'+t.descPH+'" oninput="updSal(\''+s.id+'\',\'desc\',this.value)"></div>'+
-   '<div><div class="item-val-wrap"><input class="item-val" type="number" step="any" value="'+s.val+'" oninput="updSal(\''+s.id+'\',\'val\',this.value)"><span class="item-unit">KD</span></div>'+
+   '<div><div class="item-val-wrap"><input class="item-val" type="number" step="any" value="'+s.val+'" oninput="updSal(\''+s.id+'\',\'val\',this.value)"><span class="item-unit">'+CUR()+'</span></div>'+
    '<div class="item-val-wrap" style="margin-top:5px"><span class="item-unit">×</span><input class="item-val item-mult" type="number" step="1" min="0" value="'+(s.count||1)+'" oninput="updSal(\''+s.id+'\',\'count\',this.value)"></div></div>'+
    '<button class="del-btn" onclick="delItem(\'salaries\',\''+s.id+'\')">×</button>';
   host.appendChild(row);
@@ -627,7 +635,7 @@ function renderFixed(){
  state.fixed.forEach(function(f){
   var row=document.createElement("div"); row.className="item-row";
   row.innerHTML='<div class="item-main"><input class="item-label-edit" value="'+esc(L(f))+'" oninput="updFix(\''+f.id+'\',\'label\',this.value)"><input class="item-desc" value="'+esc(D(f))+'" placeholder="'+t.descPH+'" oninput="updFix(\''+f.id+'\',\'desc\',this.value)"></div>'+
-   '<div class="item-val-wrap"><input class="item-val" type="number" step="any" value="'+f.val+'" oninput="updFix(\''+f.id+'\',\'val\',this.value)"><span class="item-unit">KD'+t.perMonthU+'</span></div>'+
+   '<div class="item-val-wrap"><input class="item-val" type="number" step="any" value="'+f.val+'" oninput="updFix(\''+f.id+'\',\'val\',this.value)"><span class="item-unit">'+CUR()+t.perMonthU+'</span></div>'+
    '<button class="del-btn" onclick="delItem(\'fixed\',\''+f.id+'\')">×</button>';
   host.appendChild(row);
  });
@@ -789,7 +797,7 @@ function renderScenarioDetail(){
  });
  // target row
  var rt=calc(0,sc.mat,fixed,sc.sell);
- h+='<tr class="target-row"><td class="rose-txt" style="font-weight:700">'+t.targetRowLabel+'<br><span style="font-weight:400;font-size:9px">('+fmt(state.targetProfit)+' KD)</span></td>';
+ h+='<tr class="target-row"><td class="rose-txt" style="font-weight:700">'+t.targetRowLabel+'<br><span style="font-weight:400;font-size:9px">('+fmt(state.targetProfit)+' '+CUR()+')</span></td>';
  if(rt.ut!==Infinity){
   h+='<td colspan="5" class="rose-txt num" style="text-align:center;font-size:13px">'+fmt(rt.ut)+' '+t.needUnits+' '+t.perMonthU+'</td>';
  } else {
@@ -809,7 +817,7 @@ function renderBE(){
    '<div class="label">'+sc.full+'</div>'+
    '<div class="value num">'+(r.be!==Infinity?fmt(r.be):"—")+' <small>'+t.units+' · '+t.beLabel+'</small></div>'+
    '<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line-soft)">'+
-   '<div class="label" style="color:var(--rose-d)">'+t.targetCardLabel+' ('+fmt(state.targetProfit)+'K)</div>'+
+   '<div class="label" style="color:var(--rose-d)">'+t.targetCardLabel+' ('+fmt(state.targetProfit)+' '+CUR()+')</div>'+
    '<div class="value num rose-txt" style="font-size:18px">'+(r.ut!==Infinity?fmt(r.ut):"—")+' <small>'+t.units+'</small></div>'+
    '</div></div>';
  });
@@ -819,10 +827,11 @@ function renderBE(){
 // ── MASTER RENDER ────────────────────────────────────────────
 function renderResults(){
  var fixed=totalFixed();
- $("out-matIvoclar").textContent=fmt3(materialPerTooth("ivoclar"))+" KD";
- $("out-matKorean").textContent=fmt3(materialPerTooth("korean"))+" KD";
- $("out-salaries").textContent=fmt(totalSalaries())+" KD";
- $("out-fixed").textContent=fmt(fixed)+" KD";
+ syncCurrency();
+ $("out-matIvoclar").textContent=fmt3(materialPerTooth("ivoclar"))+" "+CUR();
+ $("out-matKorean").textContent=fmt3(materialPerTooth("korean"))+" "+CUR();
+ $("out-salaries").textContent=fmt(totalSalaries())+" "+CUR();
+ $("out-fixed").textContent=fmt(fixed)+" "+CUR();
  buildTabs();
  renderScenarioDetail();
  renderBE();
@@ -831,8 +840,10 @@ function renderAll(){ renderMaterials(); renderSalaries(); renderFixed(); render
 
 // ── SINGLE INPUTS ────────────────────────────────────────────
 function bindSingles(){
+ $("currency").value=state.currency;
  $("sellLow").value=state.sellLow; $("sellHigh").value=state.sellHigh;
  $("zirPct").value=state.zirPct; $("targetProfit").value=state.targetProfit;
+ $("currency").oninput=function(){ state.currency=this.value; renderAll(); };
  $("sellLow").oninput=function(){ state.sellLow=parseFloat(this.value)||0; renderResults(); };
  $("sellHigh").oninput=function(){ state.sellHigh=parseFloat(this.value)||0; renderResults(); };
  $("zirPct").oninput=function(){ state.zirPct=Math.min(100,Math.max(0,parseFloat(this.value)||0)); renderResults(); };
