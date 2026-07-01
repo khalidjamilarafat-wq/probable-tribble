@@ -13,7 +13,8 @@ Flame, Layers, Smile, Bone, Briefcase, Stethoscope, Wrench, Save,
 RefreshCw, Eye, EyeOff, Archive, ArrowUpRight, ArrowDownRight, Crown,
 Edit3, Copy, MoreHorizontal, Bell, Cpu, FileSpreadsheet, FileImage,
 GitBranch, Clock, ArrowRight, MapPin, QrCode, Camera, ScanLine,
-CheckCircle2, CircleDot, LogIn, History, Hourglass, Calendar, User, Tv, Maximize2
+CheckCircle2, CircleDot, LogIn, History, Hourglass, Calendar, User, Tv, Maximize2,
+Lock, LogOut, Cloud, ShieldCheck, KeyRound
 } from 'lucide-react';
 import {
 ResponsiveContainer, LineChart, Line, AreaChart, Area, BarChart, Bar,
@@ -934,6 +935,28 @@ function seedInventory() {
   ].map(x => ({ id: uid(), name_ar: x.name, name_en: x.name, stock: x.stock, reorderAt: x.reorderAt, unitPrice: x.unitPrice, supplier: x.supplier, category: x.category }));
 }
 
+// Which views each role can open. Manager sees everything.
+const ROLE_VIEWS = {
+  manager: ['dashboard', 'flow', 'display', 'scanner', 'cases', 'inventory', 'technicians', 'accounting', 'analytics', 'ai', 'settings'],
+  reception: ['dashboard', 'flow', 'display', 'scanner', 'cases', 'inventory'],
+  technician: ['flow', 'display', 'scanner', 'cases'],
+  accountant: ['dashboard', 'accounting', 'analytics', 'cases', 'display'],
+};
+const ROLE_LABELS = {
+  manager: { ar: 'مدير', en: 'Manager', color: '#7c3aed' },
+  reception: { ar: 'استقبال', en: 'Reception', color: '#0891b2' },
+  technician: { ar: 'فني', en: 'Technician', color: '#059669' },
+  accountant: { ar: 'محاسب', en: 'Accountant', color: '#d97706' },
+};
+function seedUsers() {
+  return [
+    { id: uid(), name: 'Lab Manager', role: 'manager', pin: '1234' },
+    { id: uid(), name: 'Nawaf (Reception)', role: 'reception', pin: '1111' },
+    { id: uid(), name: 'Hassan (CAD/CAM)', role: 'technician', pin: '2222' },
+    { id: uid(), name: 'Accountant', role: 'accountant', pin: '3333' },
+  ];
+}
+
 const defaultState = () => ({
 materials: [
 { id: uid(), name_ar: "Ivoclar Zirconia (Premium)", name_en: "Ivoclar Zirconia (Premium)", price: 150, yield: 25, type: "zirconia" },
@@ -1019,6 +1042,13 @@ expenseCategories: [
 { id: 'transport', name_ar: 'نقل', name_en: 'Transport', color: '#a78bfa' },
 { id: 'misc', name_ar: 'متنوعة', name_en: 'Miscellaneous', color: '#94a3b8' },
 ],
+// === USERS & ROLES ===
+users: seedUsers(),
+currentUserId: null, // per-device; excluded from cloud sync
+// === CLOUD SYNC (Netlify Blobs via /sync function) ===
+cloud: { labId: '', pin: '', enabled: false },
+// === AUDIT LOG ===
+audit: [],
 });
 
 const fmt = (n, d = 0) => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -1088,6 +1118,10 @@ parsed.technicians = (parsed.technicians || []).map(tch => ({
 room: tch.room || (tch.specialty === 'zirconia' ? 'digital' : tch.specialty === 'emax' ? 'ceramic' : tch.specialty === 'plaster' ? 'plaster' : 'processing'),
 }));
 parsed.activeTechId = parsed.activeTechId || null;
+parsed.users = Array.isArray(parsed.users) && parsed.users.length ? parsed.users : seedUsers();
+parsed.currentUserId = parsed.currentUserId || null;
+parsed.cloud = parsed.cloud || { labId: '', pin: '', enabled: false };
+parsed.audit = Array.isArray(parsed.audit) ? parsed.audit : [];
 // merge over defaults so newly-added fields always have valid values
 setState({ ...defaultState(), ...parsed });
 } catch {}
@@ -1098,8 +1132,10 @@ if (rawLang) setLang(rawLang);
 setLoading(false);
 }, []);
 
-// Save to persistent storage (debounced)
+// Save to persistent storage (debounced), then push to the cloud when enabled.
 const saveTimer = useRef(null);
+const stateRef = useRef(state);
+stateRef.current = state;
 useEffect(() => {
 if (loading) return;
 clearTimeout(saveTimer.current);
@@ -1112,8 +1148,131 @@ setSavedFlash(true);
 setTimeout(() => setSavedFlash(false), 1500);
 }
 } catch {}
+if (state.cloud?.enabled) {
+if (cloudRef.current.suppressPush) cloudRef.current.suppressPush = false;
+else cloudPush();
+}
 }, 400);
 }, [state, lang, loading]);
+
+// ═════ CLOUD SYNC ENGINE ═════
+// Whole-state last-write-wins sync through /.netlify/functions/sync.
+// Per-device fields (cloud creds, logged-in user, active tech) never sync.
+const cloudRef = useRef({ suppressPush: false, remoteAt: 0 });
+const [cloudStatus, setCloudStatus] = useState({ lastSync: null, error: null, busy: false });
+const CLOUD_LOCAL_KEYS = ['cloud', 'currentUserId', 'activeTechId'];
+
+const cloudCall = async (body) => {
+try {
+const res = await fetch('/.netlify/functions/sync', {
+method: 'POST',
+headers: { 'content-type': 'application/json' },
+body: JSON.stringify(body),
+});
+const data = await res.json().catch(() => ({}));
+return { ok: res.ok, status: res.status, ...data };
+} catch (err) {
+return { ok: false, status: 0, error: String(err?.message || err) };
+}
+};
+
+const applyRemoteState = (remoteState, remoteAt) => {
+cloudRef.current.remoteAt = remoteAt || Date.now();
+cloudRef.current.suppressPush = true;
+setState(prev => ({
+...defaultState(),
+...remoteState,
+cloud: prev.cloud,
+currentUserId: prev.currentUserId,
+activeTechId: prev.activeTechId,
+}));
+setCloudStatus(cs => ({ ...cs, lastSync: Date.now(), error: null }));
+};
+
+const cloudPush = async () => {
+const s = stateRef.current;
+const c = s.cloud;
+if (!c?.enabled || !c.labId || !c.pin) return;
+const payload = { ...s };
+CLOUD_LOCAL_KEYS.forEach(k => { delete payload[k]; });
+const r = await cloudCall({ action: 'push', labId: c.labId, pin: c.pin, state: payload });
+if (r.ok) {
+cloudRef.current.remoteAt = r.updatedAt || Date.now();
+setCloudStatus(cs => ({ ...cs, lastSync: Date.now(), error: null }));
+} else {
+setCloudStatus(cs => ({ ...cs, error: r.error || `HTTP ${r.status}` }));
+}
+};
+
+const cloudPull = async () => {
+const c = stateRef.current.cloud;
+if (!c?.enabled || !c.labId || !c.pin) return;
+const r = await cloudCall({ action: 'pull', labId: c.labId, pin: c.pin });
+if (r.ok && r.state && (r.updatedAt || 0) > cloudRef.current.remoteAt) {
+applyRemoteState(r.state, r.updatedAt);
+} else if (r.ok) {
+setCloudStatus(cs => ({ ...cs, lastSync: Date.now(), error: null }));
+} else {
+setCloudStatus(cs => ({ ...cs, error: r.error || `HTTP ${r.status}` }));
+}
+};
+
+// Connect (or create) the lab's cloud account, adopting remote data if newer.
+const cloudConnect = async (labId, pin) => {
+setCloudStatus(cs => ({ ...cs, busy: true, error: null }));
+const r = await cloudCall({ action: 'connect', labId, pin });
+if (r.ok) {
+setState(s => ({ ...s, cloud: { labId, pin, enabled: true } }));
+if (r.state && (r.updatedAt || 0) > 0) applyRemoteState(r.state, r.updatedAt);
+setCloudStatus(cs => ({ ...cs, busy: false, lastSync: Date.now(), error: null }));
+showToast('success', r.created
+? (lang === 'ar' ? 'تم إنشاء حساب المختبر السحابي' : 'Lab cloud account created')
+: (lang === 'ar' ? 'تم الاتصال بالسحابة' : 'Connected to cloud'));
+return true;
+}
+setCloudStatus(cs => ({ ...cs, busy: false, error: r.error || `HTTP ${r.status}` }));
+showToast('error', r.error || (lang === 'ar' ? 'فشل الاتصال' : 'Connection failed'));
+return false;
+};
+
+const cloudDisconnect = () => setState(s => ({ ...s, cloud: { ...s.cloud, enabled: false } }));
+
+// Background pull every 60s while enabled (keeps the TV and other devices live).
+useEffect(() => {
+const iv = setInterval(() => { if (stateRef.current.cloud?.enabled) cloudPull(); }, 60000);
+return () => clearInterval(iv);
+}, []);
+
+// ═════ USERS / AUTH ═════
+const currentUser = (state.users || []).find(u => u.id === state.currentUserId) || null;
+const allowedViews = currentUser ? (ROLE_VIEWS[currentUser.role] || ROLE_VIEWS.manager) : ROLE_VIEWS.manager;
+
+const logAudit = (action, detail) => {
+setState(s => ({
+...s,
+audit: [
+{ id: uid(), at: nowIso(), by: (s.users || []).find(u => u.id === s.currentUserId)?.name || 'System', action, detail },
+...(s.audit || []),
+].slice(0, 300),
+}));
+};
+
+const loginUser = (userId) => {
+setState(s => ({
+...s,
+currentUserId: userId,
+audit: [
+{ id: uid(), at: nowIso(), by: (s.users || []).find(u => u.id === userId)?.name || '—', action: 'login', detail: '' },
+...(s.audit || []),
+].slice(0, 300),
+}));
+};
+const logoutUser = () => setState(s => ({ ...s, currentUserId: null }));
+
+// Keep the current view within the user's allowed set.
+useEffect(() => {
+if (currentUser && !allowedViews.includes(view)) setView(allowedViews[0]);
+}, [state.currentUserId]); // eslint-disable-line react-hooks/exhaustive-deps
 
 // ═════ Calculations ═════
 const consPerUnit = useMemo(() =>
@@ -1247,7 +1406,11 @@ const removeItemUndo = (list, id, label) => {
 let removed = null;
 setState(s => {
 removed = s[list].find(x => x.id === id) || null;
-return { ...s, [list]: s[list].filter(x => x.id !== id) };
+const by = (s.users || []).find(u => u.id === s.currentUserId)?.name || 'System';
+const audit = removed
+? [{ id: uid(), at: nowIso(), by, action: 'delete', detail: `${list}: ${label || id}` }, ...(s.audit || [])].slice(0, 300)
+: s.audit;
+return { ...s, [list]: s[list].filter(x => x.id !== id), audit };
 });
 showToast('warning', `${lang === 'ar' ? 'تم الحذف' : 'Deleted'}${label ? ` · ${label}` : ''}`, {
 label: lang === 'ar' ? 'تراجع' : 'Undo',
@@ -1302,7 +1465,10 @@ return { ...it, stock: it.stock - 1 };
 return it;
 });
 }
-return { ...s, cases: newCases, inventory: newInventory };
+const audit = success
+? [{ id: uid(), at: nowIso(), by: byName || 'Unknown', action: 'move', detail: `${foundCase?.caseId || caseId} → ${targetRoomId}` }, ...(s.audit || [])].slice(0, 300)
+: s.audit;
+return { ...s, cases: newCases, inventory: newInventory, audit };
 });
 return { success, case: foundCase };
 };
@@ -1343,6 +1509,7 @@ matCostPerUnit, totalSalaries, totalFixed, totalFixedOther,
 consPerUnit, kpis,
 notifications, moveCaseToRoom, moveCaseByQrCode, setActiveTech, showToast,
 money, activeCurrency, askConfirm, removeItemUndo,
+currentUser, logAudit, cloudConnect, cloudDisconnect, cloudPull, cloudStatus,
 };
 
 if (loading) {
@@ -1358,6 +1525,11 @@ return (
 </div>
 </div>
 );
+}
+
+// Lock screen: users exist but nobody is signed in on this device.
+if ((state.users || []).length > 0 && !currentUser) {
+return <LockScreen users={state.users} onLogin={loginUser} lang={lang} brand={t.brand} />;
 }
 
 return (
@@ -1570,6 +1742,7 @@ body[dir="rtl"] .accent-bar { border-radius: 3px 0 0 3px; }
       lang={lang} sidebarCollapsed={sidebarCollapsed}
       mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen}
       notifCount={notifications.length}
+      allowedViews={allowedViews} cloudEnabled={!!state.cloud?.enabled} cloudError={cloudStatus.error}
     />
 
 <main className="flex-1 min-w-0 main-area">
@@ -1578,6 +1751,7 @@ body[dir="rtl"] .accent-bar { border-radius: 3px 0 0 3px; }
     mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen}
     handleReset={handleReset} view={view}
     notifications={notifications} setView={setView}
+    currentUser={currentUser} onLogout={logoutUser}
   />
 
   <div className="p-4 md:p-8 max-w-[1600px] mx-auto">
@@ -1657,9 +1831,99 @@ style={{ background: 'rgba(56, 189, 248, 0.15)', border: '1px solid rgba(56, 189
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+//  LOCK SCREEN (user picker + PIN pad)
+// ═══════════════════════════════════════════════════════════════════════
+function LockScreen({ users, onLogin, lang, brand }) {
+const isRtl = lang === 'ar';
+const [selected, setSelected] = useState(null);
+const [pin, setPin] = useState('');
+const [error, setError] = useState(false);
+
+const managerHasDefaultPin = users.some(u => u.role === 'manager' && u.pin === '1234');
+
+const press = (d) => {
+if (!selected) return;
+setError(false);
+const next = (pin + d).slice(0, String(selected.pin || '').length || 4);
+setPin(next);
+if (next.length >= (String(selected.pin || '').length || 4)) {
+if (next === String(selected.pin)) { onLogin(selected.id); }
+else { setError(true); setTimeout(() => setPin(''), 350); }
+}
+};
+const backspace = () => { setError(false); setPin(p => p.slice(0, -1)); };
+
+return (
+<div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen flex items-center justify-center p-4" style={{ background: 'radial-gradient(ellipse 1000px 600px at 15% -10%, rgba(6,182,212,0.10), transparent 60%), radial-gradient(ellipse 900px 500px at 100% 0%, rgba(37,99,235,0.08), transparent 60%), #eef3fa', fontFamily: lang === 'ar' ? "'Tajawal','Manrope',sans-serif" : "'Manrope',sans-serif", color: '#0f2942' }}>
+<style>{`@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Tajawal:wght@400;500;700;900&display=swap');`}</style>
+<div className="w-full max-w-md rounded-3xl p-8" style={{ background: '#ffffff', border: '1px solid rgba(15,50,90,0.08)', boxShadow: '0 24px 60px -24px rgba(16,24,40,0.25)' }}>
+<div className="flex flex-col items-center mb-6">
+<div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-3" style={{ background: 'linear-gradient(135deg, #06b6d4, #2563eb)', boxShadow: '0 10px 28px -10px rgba(37,99,235,0.6)' }}>
+<Stethoscope size={30} strokeWidth={2.2} color="#fff" />
+</div>
+<div className="text-xl font-extrabold">{brand}</div>
+<div className="text-[12px] mt-1" style={{ color: '#8593a6' }}>
+{selected
+? (lang === 'ar' ? `أدخل رمز PIN — ${selected.name}` : `Enter PIN — ${selected.name}`)
+: (lang === 'ar' ? 'اختر المستخدم لتسجيل الدخول' : 'Select a user to sign in')}
+</div>
+</div>
+
+{!selected ? (
+<>
+<div className="grid grid-cols-2 gap-2.5">
+{users.map(u => {
+const rl = ROLE_LABELS[u.role] || { ar: u.role, en: u.role, color: '#8593a6' };
+return (
+<button key={u.id} onClick={() => { setSelected(u); setPin(''); setError(false); }}
+className="rounded-xl p-3.5 flex flex-col items-center gap-2 transition hover:-translate-y-0.5"
+style={{ background: '#f6f8fb', border: '1px solid rgba(15,50,90,0.10)', cursor: 'pointer' }}>
+<div className="w-11 h-11 rounded-full flex items-center justify-center text-base font-extrabold" style={{ background: `${rl.color}1f`, color: rl.color, border: `2px solid ${rl.color}55` }}>
+{u.name.charAt(0).toUpperCase()}
+</div>
+<div className="text-[12.5px] font-bold text-center leading-tight">{u.name}</div>
+<div className="text-[9.5px] uppercase tracking-widest font-bold" style={{ color: rl.color }}>{rl[lang] || u.role}</div>
+</button>
+);
+})}
+</div>
+{managerHasDefaultPin && (
+<div className="mt-5 text-center text-[11px] px-3 py-2 rounded-lg" style={{ background: 'rgba(217,119,6,0.08)', color: '#b45309', border: '1px solid rgba(217,119,6,0.2)' }}>
+{lang === 'ar' ? 'أول مرة؟ PIN المدير الافتراضي: 1234 (غيّره من الإعدادات)' : 'First time? Default manager PIN: 1234 (change it in Settings)'}
+</div>
+)}
+</>
+) : (
+<>
+<div className="flex items-center justify-center gap-2.5 mb-5" style={{ minHeight: 22 }}>
+{Array.from({ length: String(selected.pin || '').length || 4 }).map((_, i) => (
+<div key={i} className="w-3.5 h-3.5 rounded-full transition-all" style={{ background: i < pin.length ? (error ? '#e11d48' : '#0891b2') : '#e2e8f0', transform: i < pin.length ? 'scale(1.1)' : 'none' }} />
+))}
+</div>
+{error && <div className="text-center text-[12px] font-bold mb-3" style={{ color: '#e11d48' }}>{lang === 'ar' ? 'رمز خاطئ، حاول مجدداً' : 'Wrong PIN, try again'}</div>}
+<div className="grid grid-cols-3 gap-2.5 max-w-[260px] mx-auto">
+{['1','2','3','4','5','6','7','8','9'].map(d => (
+<button key={d} onClick={() => press(d)} className="h-14 rounded-xl text-lg font-bold transition active:scale-95" style={{ background: '#f6f8fb', border: '1px solid rgba(15,50,90,0.10)', cursor: 'pointer', color: '#0f2942' }}>{d}</button>
+))}
+<button onClick={() => { setSelected(null); setPin(''); setError(false); }} className="h-14 rounded-xl text-[11px] font-bold" style={{ background: 'transparent', border: '1px solid rgba(15,50,90,0.10)', color: '#8593a6', cursor: 'pointer' }}>
+{lang === 'ar' ? 'رجوع' : 'Back'}
+</button>
+<button onClick={() => press('0')} className="h-14 rounded-xl text-lg font-bold transition active:scale-95" style={{ background: '#f6f8fb', border: '1px solid rgba(15,50,90,0.10)', cursor: 'pointer', color: '#0f2942' }}>0</button>
+<button onClick={backspace} className="h-14 rounded-xl flex items-center justify-center" style={{ background: 'transparent', border: '1px solid rgba(15,50,90,0.10)', cursor: 'pointer' }}>
+<X size={18} color="#8593a6" />
+</button>
+</div>
+</>
+)}
+</div>
+</div>
+);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 //  SIDEBAR
 // ═══════════════════════════════════════════════════════════════════════
-function Sidebar({ view, setView, t, isRtl, lang, mobileMenuOpen, setMobileMenuOpen, notifCount }) {
+function Sidebar({ view, setView, t, isRtl, lang, mobileMenuOpen, setMobileMenuOpen, notifCount, allowedViews, cloudEnabled, cloudError }) {
 const navItems = [
 { id: 'dashboard', icon: LayoutDashboard, label: t.dashboard, group: 'main' },
 { id: 'flow', icon: GitBranch, label: t.flow, group: 'main' },
@@ -1672,7 +1936,7 @@ const navItems = [
 { id: 'analytics', icon: BarChart3, label: t.analytics, group: 'insight' },
 { id: 'ai', icon: Sparkles, label: t.aiAssistant, group: 'insight' },
 { id: 'settings', icon: Settings, label: t.settings, group: 'system' },
-];
+].filter(item => !allowedViews || allowedViews.includes(item.id));
 
 const handleClick = (id) => {
 setView(id);
@@ -1696,7 +1960,7 @@ background: 'linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(248, 250, 2
 backdropFilter: 'blur(20px)',
 }}
 >
-<SidebarContent navItems={navItems} view={view} handleClick={handleClick} t={t} lang={lang} notifCount={notifCount} />
+<SidebarContent navItems={navItems} view={view} handleClick={handleClick} t={t} lang={lang} notifCount={notifCount} cloudEnabled={cloudEnabled} cloudError={cloudError} />
 </aside>
 
   <aside
@@ -1708,14 +1972,14 @@ backdropFilter: 'blur(20px)',
       borderLeft: isRtl ? '1px solid rgba(120, 180, 255, 0.15)' : 'none',
     }}
   >
-    <SidebarContent navItems={navItems} view={view} handleClick={handleClick} t={t} lang={lang} notifCount={notifCount} />
+    <SidebarContent navItems={navItems} view={view} handleClick={handleClick} t={t} lang={lang} notifCount={notifCount} cloudEnabled={cloudEnabled} cloudError={cloudError} />
   </aside>
 </>
 
 );
 }
 
-function SidebarContent({ navItems, view, handleClick, t, lang, notifCount }) {
+function SidebarContent({ navItems, view, handleClick, t, lang, notifCount, cloudEnabled, cloudError }) {
 return (
 
 <div className="p-5">
@@ -1770,13 +2034,18 @@ style={{ background: 'linear-gradient(135deg, #06b6d4, #2563eb)' }}
 
   <div className="mt-8 p-3.5 rounded-xl" style={{ background: 'rgba(56, 189, 248, 0.04)', border: '1px solid rgba(56, 189, 248, 0.12)' }}>
     <div className="flex items-center gap-2 mb-1">
-      <div className="w-2 h-2 rounded-full bg-emerald-400 pulse-soft" />
-      <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-2)' }}>
-        {lang === 'ar' ? 'متصل' : 'Online'}
+      <div className={`w-2 h-2 rounded-full pulse-soft ${cloudError ? 'bg-rose-400' : 'bg-emerald-400'}`} />
+      <div className="text-[11px] font-semibold uppercase tracking-wider flex items-center gap-1.5" style={{ color: 'var(--text-2)' }}>
+        {cloudEnabled && <Cloud size={11} color={cloudError ? '#e11d48' : '#0891b2'} />}
+        {cloudEnabled
+          ? (cloudError ? (lang === 'ar' ? 'خطأ مزامنة' : 'Sync error') : (lang === 'ar' ? 'مزامنة سحابية' : 'Cloud sync'))
+          : (lang === 'ar' ? 'متصل' : 'Online')}
       </div>
     </div>
     <div className="text-[10.5px]" style={{ color: 'var(--text-3)' }}>
-      {lang === 'ar' ? 'البيانات محفوظة محلياً' : 'Data synced locally'}
+      {cloudEnabled
+        ? (lang === 'ar' ? 'البيانات مشتركة بين الأجهزة' : 'Data shared across devices')
+        : (lang === 'ar' ? 'البيانات محفوظة محلياً' : 'Data synced locally')}
     </div>
   </div>
 </div>
@@ -1787,7 +2056,7 @@ style={{ background: 'linear-gradient(135deg, #06b6d4, #2563eb)' }}
 // ═══════════════════════════════════════════════════════════════════════
 //  TOP BAR
 // ═══════════════════════════════════════════════════════════════════════
-function TopBar({ t, lang, setLang, savedFlash, mobileMenuOpen, setMobileMenuOpen, view, notifications, setView }) {
+function TopBar({ t, lang, setLang, savedFlash, mobileMenuOpen, setMobileMenuOpen, view, notifications, setView, currentUser, onLogout }) {
 const [showNotif, setShowNotif] = useState(false);
 const viewTitles = {
 dashboard: t.dashboard, calculator: t.calculator, cases: t.cases,
@@ -1831,6 +2100,24 @@ style={{ background: 'rgba(120, 180, 255, 0.08)', border: '1px solid rgba(120, 1
     >
       <Check size={11} /> {t.saved}
     </div>
+
+{/* Current user + logout */}
+{currentUser && (
+  <div className="hidden sm:flex items-center gap-2 px-2.5 py-1.5 rounded-lg" style={{ background: '#f1f5f9', border: '1px solid rgba(15,50,90,0.10)' }}>
+    <div className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold" style={{ background: 'linear-gradient(135deg, #06b6d4, #2563eb)', color: '#fff' }}>
+      {currentUser.name.charAt(0).toUpperCase()}
+    </div>
+    <div className="leading-tight">
+      <div className="text-[11.5px] font-bold" style={{ color: 'var(--text)' }}>{currentUser.name}</div>
+      <div className="text-[9px] uppercase tracking-wider font-bold" style={{ color: (ROLE_LABELS[currentUser.role] || {}).color || 'var(--text-3)' }}>
+        {(ROLE_LABELS[currentUser.role] || {})[lang] || currentUser.role}
+      </div>
+    </div>
+    <button onClick={onLogout} className="w-7 h-7 rounded-md flex items-center justify-center" title={lang === 'ar' ? 'تسجيل الخروج' : 'Log out'} style={{ background: 'rgba(225,29,72,0.08)', border: '1px solid rgba(225,29,72,0.18)' }}>
+      <LogOut size={13} color="#e11d48" />
+    </button>
+  </div>
+)}
 
 {/* Notifications */}
 <div className="relative">
@@ -4485,7 +4772,7 @@ style={{ fontFamily: mono ? 'monospace' : 'inherit' }}
 //  CASES VIEW
 // ═══════════════════════════════════════════════════════════════════════
 function CasesView({ ctx }) {
-const { state, t, lang, isRtl, setField, addItem, removeItem, removeItemUndo } = ctx;
+const { state, t, lang, isRtl, setField, addItem, removeItem, removeItemUndo, logAudit } = ctx;
 const [filter, setFilter] = useState('all');
 const [search, setSearch] = useState('');
 const [showQrCase, setShowQrCase] = useState(null);
@@ -4522,6 +4809,7 @@ setShowIntakeModal(true);
 
 const handleSaveCase = (caseData) => {
 addItem('cases', caseData);
+logAudit?.('create', `${caseData.caseId} · ${caseData.patient || ''}`);
 };
 
 return (
@@ -7269,7 +7557,9 @@ color: 'var(--text-2)',
 //  SETTINGS VIEW
 // ═══════════════════════════════════════════════════════════════════════
 function SettingsView({ ctx, setLang, handleReset }) {
-const { t, lang, state, setState, showToast, askConfirm } = ctx;
+const { t, lang, state, setState, showToast, askConfirm, currentUser, cloudConnect, cloudDisconnect, cloudPull, cloudStatus, logAudit } = ctx;
+const isManager = !currentUser || currentUser.role === 'manager';
+const [cloudForm, setCloudForm] = useState({ labId: state.cloud?.labId || '', pin: state.cloud?.pin || '' });
 const importInputRef = useRef(null);
 
 // Restore a previously exported JSON backup. Validates shape before applying.
@@ -7292,6 +7582,7 @@ danger: true,
 if (ok) {
 // Merge over defaults so any newly-added fields keep valid values.
 setState({ ...defaultState(), ...parsed });
+logAudit?.('import', lang === 'ar' ? 'استيراد نسخة احتياطية' : 'Imported backup');
 showToast?.('success', lang === 'ar' ? 'تم استيراد البيانات' : 'Data imported');
 }
 } catch {
@@ -7410,6 +7701,160 @@ return (
 </div>
 
   </div>
+
+  {/* ─── CLOUD SYNC (manager) ─── */}
+  {isManager && (
+  <div className="glass rounded-2xl p-6">
+    <div className="flex items-center gap-2 mb-1">
+      <Cloud size={17} color="#0891b2" />
+      <h3 className="display-font text-base font-semibold" style={{ color: 'var(--text)' }}>
+        {lang === 'ar' ? 'المزامنة السحابية' : 'Cloud Sync'}
+      </h3>
+      {state.cloud?.enabled && (
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider" style={{ background: 'rgba(5,150,105,0.12)', color: '#059669', border: '1px solid rgba(5,150,105,0.25)' }}>
+          {lang === 'ar' ? 'مفعّلة' : 'Active'}
+        </span>
+      )}
+    </div>
+    <p className="text-[12px] mb-4" style={{ color: 'var(--text-3)' }}>
+      {lang === 'ar'
+        ? 'اربط كل أجهزة المختبر (الاستقبال، التلفزيون، الموبايل) بنفس البيانات. اختر كود مختبر ورمز PIN، واستخدمهما على كل جهاز.'
+        : 'Share the same data across all lab devices (reception PC, TV, phone). Pick a lab code and PIN, then connect every device with the same pair.'}
+    </p>
+    <div className="grid sm:grid-cols-2 gap-3 mb-3">
+      <div>
+        <label className="block text-[10.5px] uppercase tracking-wider font-semibold mb-1" style={{ color: 'var(--text-3)' }}>{lang === 'ar' ? 'كود المختبر' : 'Lab code'}</label>
+        <input className="themed mono" placeholder="evora-lab-01" value={cloudForm.labId} onChange={e => setCloudForm(f => ({ ...f, labId: e.target.value }))} disabled={state.cloud?.enabled} />
+      </div>
+      <div>
+        <label className="block text-[10.5px] uppercase tracking-wider font-semibold mb-1" style={{ color: 'var(--text-3)' }}>{lang === 'ar' ? 'رمز PIN (٤ خانات أو أكثر)' : 'PIN (4+ chars)'}</label>
+        <input className="themed mono" type="password" placeholder="••••" value={cloudForm.pin} onChange={e => setCloudForm(f => ({ ...f, pin: e.target.value }))} disabled={state.cloud?.enabled} />
+      </div>
+    </div>
+    <div className="flex flex-wrap items-center gap-2">
+      {!state.cloud?.enabled ? (
+        <button
+          className="btn btn-primary"
+          disabled={cloudStatus?.busy || cloudForm.labId.trim().length < 3 || cloudForm.pin.length < 4}
+          style={{ opacity: (cloudStatus?.busy || cloudForm.labId.trim().length < 3 || cloudForm.pin.length < 4) ? 0.5 : 1 }}
+          onClick={() => cloudConnect(cloudForm.labId.trim().toLowerCase(), cloudForm.pin)}
+        >
+          {cloudStatus?.busy ? <Loader2 size={13} className="animate-spin" /> : <Cloud size={13} />}
+          {lang === 'ar' ? 'إنشاء / اتصال' : 'Create / Connect'}
+        </button>
+      ) : (
+        <>
+          <button className="btn btn-ghost" onClick={() => cloudPull()}>
+            <RefreshCw size={13} /> {lang === 'ar' ? 'مزامنة الآن' : 'Sync now'}
+          </button>
+          <button className="btn btn-danger" onClick={cloudDisconnect}>
+            <X size={13} /> {lang === 'ar' ? 'إيقاف المزامنة' : 'Disconnect'}
+          </button>
+        </>
+      )}
+      <span className="text-[11px]" style={{ color: cloudStatus?.error ? '#e11d48' : 'var(--text-3)' }}>
+        {cloudStatus?.error
+          ? `${lang === 'ar' ? 'خطأ' : 'Error'}: ${cloudStatus.error}`
+          : cloudStatus?.lastSync
+            ? `${lang === 'ar' ? 'آخر مزامنة' : 'Last sync'}: ${new Date(cloudStatus.lastSync).toLocaleTimeString()}`
+            : ''}
+      </span>
+    </div>
+  </div>
+  )}
+
+  {/* ─── USERS & ROLES (manager) ─── */}
+  {isManager && (
+  <div className="glass rounded-2xl p-6">
+    <div className="flex items-center justify-between mb-1">
+      <div className="flex items-center gap-2">
+        <ShieldCheck size={17} color="#7c3aed" />
+        <h3 className="display-font text-base font-semibold" style={{ color: 'var(--text)' }}>
+          {lang === 'ar' ? 'المستخدمون والصلاحيات' : 'Users & Roles'}
+        </h3>
+      </div>
+      <button
+        className="btn btn-ghost"
+        onClick={() => setState(s => ({ ...s, users: [...(s.users || []), { id: uid(), name: lang === 'ar' ? 'مستخدم جديد' : 'New User', role: 'technician', pin: '0000' }] }))}
+      >
+        <Plus size={13} /> {lang === 'ar' ? 'إضافة مستخدم' : 'Add user'}
+      </button>
+    </div>
+    <p className="text-[12px] mb-4" style={{ color: 'var(--text-3)' }}>
+      {lang === 'ar' ? 'كل مستخدم له PIN ودور يحدد الصفحات المسموحة له.' : 'Each user has a PIN and a role that limits which pages they can open.'}
+    </p>
+    <div className="space-y-2">
+      {(state.users || []).map(u => (
+        <div key={u.id} className="flex flex-wrap items-center gap-2 p-2.5 rounded-xl" style={{ background: '#f6f8fb', border: '1px solid rgba(15,50,90,0.08)' }}>
+          <input
+            className="themed flex-1 min-w-[140px]"
+            value={u.name}
+            onChange={e => setState(s => ({ ...s, users: s.users.map(x => x.id === u.id ? { ...x, name: e.target.value } : x) }))}
+          />
+          <select
+            className="themed"
+            style={{ width: 130 }}
+            value={u.role}
+            onChange={e => setState(s => ({ ...s, users: s.users.map(x => x.id === u.id ? { ...x, role: e.target.value } : x) }))}
+          >
+            {Object.keys(ROLE_LABELS).map(r => <option key={r} value={r}>{ROLE_LABELS[r][lang] || r}</option>)}
+          </select>
+          <div className="flex items-center gap-1">
+            <KeyRound size={13} color="#8593a6" />
+            <input
+              className="themed mono"
+              style={{ width: 90, textAlign: 'center' }}
+              value={u.pin}
+              maxLength={8}
+              onChange={e => setState(s => ({ ...s, users: s.users.map(x => x.id === u.id ? { ...x, pin: e.target.value.replace(/\D/g, '') } : x) }))}
+            />
+          </div>
+          <button
+            className="w-8 h-8 rounded-lg flex items-center justify-center"
+            style={{ background: 'rgba(225,29,72,0.08)', border: '1px solid rgba(225,29,72,0.18)', cursor: 'pointer' }}
+            title={t.delete}
+            onClick={async () => {
+              if ((state.users || []).filter(x => x.role === 'manager').length <= 1 && u.role === 'manager') {
+                showToast('error', lang === 'ar' ? 'لا يمكن حذف آخر مدير' : 'Cannot delete the last manager');
+                return;
+              }
+              const ok = await askConfirm({ title: lang === 'ar' ? 'حذف المستخدم' : 'Delete User', message: u.name, confirmLabel: t.delete, danger: true });
+              if (ok) setState(s => ({ ...s, users: s.users.filter(x => x.id !== u.id), currentUserId: s.currentUserId === u.id ? null : s.currentUserId }));
+            }}
+          >
+            <Trash2 size={13} color="#e11d48" />
+          </button>
+        </div>
+      ))}
+    </div>
+  </div>
+  )}
+
+  {/* ─── AUDIT LOG (manager) ─── */}
+  {isManager && (state.audit || []).length > 0 && (
+  <div className="glass rounded-2xl p-6">
+    <div className="flex items-center gap-2 mb-3">
+      <History size={17} color="#d97706" />
+      <h3 className="display-font text-base font-semibold" style={{ color: 'var(--text)' }}>
+        {lang === 'ar' ? 'سجل العمليات' : 'Audit Log'}
+      </h3>
+      <span className="text-[11px]" style={{ color: 'var(--text-3)' }}>({(state.audit || []).length})</span>
+    </div>
+    <div className="space-y-1 max-h-72 scroll-y">
+      {(state.audit || []).slice(0, 50).map(a => (
+        <div key={a.id} className="flex items-center gap-2 text-[12px] py-1.5 px-2 rounded-lg" style={{ borderBottom: '1px solid rgba(15,50,90,0.05)' }}>
+          <span className="mono text-[10.5px] shrink-0" style={{ color: 'var(--text-3)' }}>{timeSince(a.at, lang)}</span>
+          <span className="font-bold px-1.5 py-0.5 rounded text-[10px] uppercase shrink-0" style={{
+            background: a.action === 'delete' ? 'rgba(225,29,72,0.1)' : a.action === 'create' ? 'rgba(5,150,105,0.1)' : a.action === 'login' ? 'rgba(124,58,237,0.1)' : 'rgba(8,145,178,0.1)',
+            color: a.action === 'delete' ? '#e11d48' : a.action === 'create' ? '#059669' : a.action === 'login' ? '#7c3aed' : '#0891b2',
+          }}>{a.action}</span>
+          <span className="font-semibold shrink-0" style={{ color: 'var(--text-2)' }}>{a.by}</span>
+          <span className="truncate" style={{ color: 'var(--text-3)' }}>{a.detail}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+  )}
 
   <div className="glass rounded-2xl p-6">
     <h3 className="display-font text-base font-semibold mb-1" style={{ color: 'var(--text)' }}>

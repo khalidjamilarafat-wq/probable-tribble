@@ -2,11 +2,28 @@
 
 An intelligent dental-lab management web app: dashboard, room-based production
 flow, QR scanner, case management, inventory, technicians, professional
-accounting (invoices, payments, expenses, multi-currency, VAT), analytics, and
-an AI assistant. Bilingual (Arabic / English, full RTL).
+accounting (invoices, payments, expenses, multi-currency, VAT), analytics,
+a live TV display board, and an AI assistant. Bilingual (Arabic / English,
+full RTL).
+
+**Pro features**
+
+- **Multi-user login with roles** — Manager / Reception / Technician /
+  Accountant, each with a PIN and role-limited navigation. Users are managed
+  in Settings; every action is recorded in an audit log.
+- **Cloud sync across devices** — powered by Netlify Blobs (no external
+  database needed). Pick a lab code + PIN in Settings → Cloud Sync, connect
+  every device (reception PC, TV, phone) with the same pair, and data syncs
+  automatically (~1 min).
+- **Installable PWA** — add it to the home screen on tablets/phones; the app
+  shell works offline.
 
 Built with **React + Vite + TypeScript + Tailwind**. Data is stored locally in
-the browser (`localStorage`) with JSON export/import for backups.
+the browser (`localStorage`) with JSON export/import for backups, and shared
+across devices when Cloud Sync is enabled.
+
+> Default sign-in after a fresh install: **Lab Manager, PIN 1234** (change it
+> in Settings → Users & Roles).
 
 ## Develop
 
