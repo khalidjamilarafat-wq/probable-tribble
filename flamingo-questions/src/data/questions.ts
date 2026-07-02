@@ -1,3 +1,5 @@
+import { spicyQuestions, spicyDares } from "./spicy";
+
 export type Category = {
   id: string;
   label: string;
@@ -72,6 +74,14 @@ export const categories: Category[] = [
     mature: true,
   },
   {
+    id: "dares",
+    label: "Dares",
+    emoji: "😈",
+    description: "Spicy dares for two — from sweet heat to bold. 18+",
+    color: "#9333ea",
+    mature: true,
+  },
+  {
     id: "conflict",
     label: "Communication",
     emoji: "🗝️",
@@ -80,7 +90,7 @@ export const categories: Category[] = [
   },
 ];
 
-export const questions: Question[] = [
+const coreQuestions: Question[] = [
   // Warm Up
   { id: "w1", categoryId: "warmup", text: "What's the best part of your day, so far?" },
   { id: "w2", categoryId: "warmup", text: "What song instantly puts you in a good mood?" },
@@ -173,26 +183,6 @@ export const questions: Question[] = [
   { id: "t9", categoryId: "trust", text: "What's something you appreciate about me that you don't say enough?" },
   { id: "t10", categoryId: "trust", text: "What would make you feel even closer to me than you already do?" },
 
-  // Spicy & Hot (18+)
-  { id: "sp1", categoryId: "spicy", text: "What's a fantasy you've never told me about?" },
-  { id: "sp2", categoryId: "spicy", text: "What's one thing you'd love for me to do more of when we're intimate?" },
-  { id: "sp3", categoryId: "spicy", text: "What's your favorite way for me to initiate something intimate?" },
-  { id: "sp4", categoryId: "spicy", text: "What's an outfit, or moment, that instantly gets your attention?" },
-  { id: "sp5", categoryId: "spicy", text: "Is there a role-play scenario or fantasy you'd want to try together sometime?" },
-  { id: "sp6", categoryId: "spicy", text: "What's the sexiest thing I've ever said or done, in your memory?" },
-  { id: "sp7", categoryId: "spicy", text: "Slow and sensual, or playful and fast — what's your mood tonight?" },
-  { id: "sp8", categoryId: "spicy", text: "What's something on your intimacy bucket list you haven't told me yet?" },
-  { id: "sp9", categoryId: "spicy", text: "What's your favorite way to be teased or flirted with?" },
-  { id: "sp10", categoryId: "spicy", text: "What makes you feel most desired by me?" },
-  { id: "sp11", categoryId: "spicy", text: "If we had a whole weekend alone with zero interruptions, how would you want to spend it?" },
-  { id: "sp12", categoryId: "spicy", text: "What's a compliment about your body or attractiveness you'd love to hear from me more often?" },
-  { id: "sp13", categoryId: "spicy", text: "What's something new you'd be curious to explore together?" },
-  { id: "sp14", categoryId: "spicy", text: "What helps you feel most comfortable and confident being intimate with me?" },
-  { id: "sp15", categoryId: "spicy", text: "What's a small gesture that instantly builds anticipation for you?" },
-  { id: "sp16", categoryId: "spicy", text: "Where's somewhere new (or bold) you'd love for us to be intimate together?" },
-  { id: "sp17", categoryId: "spicy", text: "What does feeling truly wanted by me look like, physically?" },
-  { id: "sp18", categoryId: "spicy", text: "What's one thing you wish I'd ask you more about our intimate life?" },
-
   // Communication / Conflict
   { id: "c1", categoryId: "conflict", text: "How do you like to resolve disagreements — talk right away, or take space first?" },
   { id: "c2", categoryId: "conflict", text: "What's something I do during an argument that helps, and something that doesn't?" },
@@ -205,3 +195,6 @@ export const questions: Question[] = [
   { id: "c9", categoryId: "conflict", text: "What boundary do you have that you want me to understand better?" },
   { id: "c10", categoryId: "conflict", text: "What's one thing we could do to communicate even better as a team?" },
 ];
+
+// 18+ decks live in their own file: src/data/spicy.ts
+export const questions: Question[] = [...coreQuestions, ...spicyQuestions, ...spicyDares];

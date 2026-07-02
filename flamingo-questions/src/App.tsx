@@ -27,7 +27,12 @@ export default function App() {
   const categoryById = useMemo(() => Object.fromEntries(categories.map((c) => [c.id, c])), []);
 
   function openDeck(categoryId: string | "all") {
-    const pool = categoryId === "all" ? questions : questions.filter((q) => q.categoryId === categoryId);
+    // "Shuffle all" stays family-friendly: 18+ decks are only reachable
+    // through their own gated categories.
+    const pool =
+      categoryId === "all"
+        ? questions.filter((q) => !categoryById[q.categoryId]?.mature)
+        : questions.filter((q) => q.categoryId === categoryId);
     setDeck(shuffle(pool));
     setIndex(0);
     setView({ screen: "deck", categoryId });
