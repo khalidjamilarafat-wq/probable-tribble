@@ -53,6 +53,27 @@ reception: 2, plaster: 8, digital: 6, cadcam: 24,
 processing: 8, ceramic: 16, office: 4
 };
 
+// Pure helpers live in ./lib/utils (unit-tested there).
+import {
+uid, nowIso, futureDateStr, daysUntil, hoursIn, timeSince,
+fmt, fmt2, fmt3, csvEscape, turnaroundFor,
+} from './lib/utils';
+
+// VITA Classical + bleach shades — quick-select at intake.
+const SHADE_OPTIONS = ['A1', 'A2', 'A3', 'A3.5', 'A4', 'B1', 'B2', 'B3', 'B4', 'C1', 'C2', 'C3', 'C4', 'D2', 'D3', 'D4', 'BL1', 'BL2', 'BL3', 'BL4'];
+
+// Why a case came back — the categories every lab tracks for root-cause work.
+const REMAKE_REASONS = [
+{ id: 'shade', ar: 'شيد غير مطابق', en: 'Shade mismatch' },
+{ id: 'fit', ar: 'عدم ملاءمة', en: 'Poor fit' },
+{ id: 'fracture', ar: 'كسر', en: 'Fracture/chipping' },
+{ id: 'margins', ar: 'حواف غير دقيقة', en: 'Open margins' },
+{ id: 'occlusion', ar: 'إطباق', en: 'Occlusion' },
+{ id: 'contacts', ar: 'نقاط تماس', en: 'Proximal contacts' },
+{ id: 'impression', ar: 'طبعة سيئة', en: 'Bad impression' },
+{ id: 'other', ar: 'أخرى', en: 'Other' },
+];
+
 // ═══════════════════════════════════════════════════════════════════════
 //  TRANSLATIONS
 // ═══════════════════════════════════════════════════════════════════════
@@ -783,16 +804,6 @@ fixed: [
 ]
 };
 
-const uid = () => Math.random().toString(36).slice(2, 11);
-const nowIso = () => new Date().toISOString();
-
-// Add deadline N days from today as YYYY-MM-DD
-const futureDateStr = (days) => {
-const d = new Date();
-d.setDate(d.getDate() + days);
-return d.toISOString().split('T')[0];
-};
-
 // ═══════════════════════════════════════════════════════════════════════
 //  DEMO SEED DATA — simulates ~3 months of a working lab (50 varied cases)
 //  + a full opening inventory (~6 months of supply). Deterministic per case.
@@ -882,13 +893,19 @@ function seedCases() {
     let history;
     if (!active) { history = _seedHist("office", createdMs, createdMs + lead * day); }
     else {
-      history = _seedHist(currentRoom, createdMs, now);
-      if (stuck.has(aIdx) && history.length) { const sla = ROOM_SLA_HOURS[currentRoom] || 12; history[history.length - 1].at = new Date(now - sla * 2.2 * 3600000).toISOString(); }
+      // Stuck cases entered their current room long ago: compress the whole
+      // history to end before the SLA window so timestamps stay monotonic.
+      let endMs = now;
+      if (stuck.has(aIdx)) { const sla = ROOM_SLA_HOURS[currentRoom] || 12; endMs = now - sla * 2.2 * 3600000; }
+      history = _seedHist(currentRoom, createdMs, Math.max(endMs, createdMs + 3600000));
     }
     const d = new Date(createdMs); const yy = String(d.getFullYear()).slice(-2); const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const remakeReasons = ["shade", "fit", "fracture", "margins", "occlusion", "impression"];
     out.push({
       id: uid(), caseId: `C-${yy}${mm}-${String(i + 1).padStart(3, "0")}`,
       patient: _SEED_PT[i % _SEED_PT.length], clinic: clin.clinic, doctorName: clin.doctor,
+      priority: (active && aIdx % 5 === 1) ? "rush" : "normal",
+      remakeReason: remake ? remakeReasons[i % remakeReasons.length] : null,
       type: tcfg.type, typeOfWork: tcfg.work, teeth, shade: _SEED_SHADES[(i * 5) % _SEED_SHADES.length],
       units, price: tcfg.price, status, technician: _SEED_TECHBYTYPE[tcfg.type] || "Hassan",
       date: new Date(createdMs).toISOString().split("T")[0], remake,
@@ -1051,34 +1068,8 @@ cloud: { labId: '', pin: '', enabled: false },
 audit: [],
 });
 
-const fmt = (n, d = 0) => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d });
-const fmt2 = (n) => Number(n || 0).toFixed(2);
-const fmt3 = (n) => Number(n || 0).toFixed(3);
-
-// Time helpers
-const timeSince = (iso, lang) => {
-if (!iso) return '—';
-const s = (Date.now() - new Date(iso).getTime()) / 1000;
-if (s < 60) return lang === 'ar' ? 'للتو' : 'just now';
-const m = Math.floor(s / 60);
-if (m < 60) return lang === 'ar' ? `${m} د.` : `${m}m`;
-const h = Math.floor(m / 60);
-if (h < 24) return lang === 'ar' ? `${h} س.` : `${h}h`;
-const d = Math.floor(h / 24);
-return lang === 'ar' ? `${d} ي.` : `${d}d`;
-};
-
-const hoursIn = (iso) => {
-if (!iso) return 0;
-return (Date.now() - new Date(iso).getTime()) / 3600000;
-};
-
-const daysUntil = (dateStr) => {
-if (!dateStr) return null;
-const target = new Date(dateStr + 'T23:59:59');
-const diff = (target.getTime() - Date.now()) / 86400000;
-return Math.ceil(diff);
-};
+// Test hooks: pure data/generators used by the automated tests (src/tests/).
+export { seedCases, seedInventory, seedUsers, ROOMS, ROOM_SLA_HOURS, ROLE_VIEWS, REMAKE_REASONS, SHADE_OPTIONS, nextRoomId, prevRoomId, defaultState };
 
 // ═══════════════════════════════════════════════════════════════════════
 //  MAIN COMPONENT
@@ -1843,12 +1834,15 @@ const managerHasDefaultPin = users.some(u => u.role === 'manager' && u.pin === '
 
 const press = (d) => {
 if (!selected) return;
+// After a wrong attempt, the next keypress starts a fresh entry immediately
+// (fast typers shouldn't have to wait for the error-clear timeout).
+const base = error ? '' : pin;
 setError(false);
-const next = (pin + d).slice(0, String(selected.pin || '').length || 4);
+const next = (base + d).slice(0, String(selected.pin || '').length || 4);
 setPin(next);
 if (next.length >= (String(selected.pin || '').length || 4)) {
 if (next === String(selected.pin)) { onLogin(selected.id); }
-else { setError(true); setTimeout(() => setPin(''), 350); }
+else { setError(true); setTimeout(() => setPin(p => (p === next ? '' : p)), 350); }
 }
 };
 const backspace = () => { setError(false); setPin(p => p.slice(0, -1)); };
@@ -2481,7 +2475,9 @@ if (d <= 2) return { key: 'soon', color: '#ea580c' };
 return { key: 'ok', color: '#059669' };
 };
 
-const byRoom = ROOMS.map(r => ({ room: r, cases: activeCases.filter(c => c.currentRoom === r.id) }));
+// Rush cases float to the top of every room column.
+const byRush = (a, b) => (b.priority === 'rush' ? 1 : 0) - (a.priority === 'rush' ? 1 : 0);
+const byRoom = ROOMS.map(r => ({ room: r, cases: activeCases.filter(c => c.currentRoom === r.id).sort(byRush) }));
 const today = new Date().toISOString().split('T')[0];
 const kDue = activeCases.filter(c => c.deadline === today).length;
 const kOver = activeCases.filter(c => { const d = daysUntil(c.deadline); return d !== null && d < 0; }).length;
@@ -2599,8 +2595,11 @@ const last = c.roomHistory && c.roomHistory.length ? c.roomHistory[c.roomHistory
 return (
 <div key={c.id} className="rounded-lg px-2.5 py-1.5 flex items-center gap-2" style={{ background: '#f1f5f9', borderLeft: `3px solid ${u.color}` }}>
 <div className="min-w-0 flex-1">
-<div className="mono font-bold truncate" style={{ color: '#0f2942', fontSize: 'clamp(10px,0.85vw,13px)' }}>{c.caseId}</div>
-<div className="truncate" style={{ color: '#5b6b82', fontSize: 'clamp(9px,0.8vw,12px)' }}>{c.patient || '—'} · {t[c.type] || c.type}</div>
+<div className="mono font-bold truncate flex items-center gap-1" style={{ color: '#0f2942', fontSize: 'clamp(10px,0.85vw,13px)' }}>
+{c.priority === 'rush' && <Zap size={11} color="#e11d48" style={{ flexShrink: 0 }} />}
+{c.caseId}
+</div>
+<div className="truncate" style={{ color: '#5b6b82', fontSize: 'clamp(9px,0.8vw,12px)' }}>{c.patient || '—'} · {t[c.type] || c.type}{c.shade ? ` · ${c.shade}` : ''}</div>
 </div>
 <div className="mono shrink-0" style={{ color: u.color, fontSize: 'clamp(9px,0.75vw,11px)' }}>{last ? timeSince(last.at, lang) : ''}</div>
 </div>
@@ -2650,6 +2649,8 @@ ROOMS.forEach(r => { map[r.id] = []; });
 activeCases.forEach(c => {
 if (map[c.currentRoom]) map[c.currentRoom].push(c);
 });
+// Rush cases first inside every room column.
+Object.values(map).forEach(list => list.sort((a, b) => (b.priority === 'rush' ? 1 : 0) - (a.priority === 'rush' ? 1 : 0)));
 return map;
 }, [activeCases]);
 
@@ -4300,13 +4301,28 @@ stlFiles: false,
 // Intake info
 intakeTech: '',
 notes: '',
+// Priority & deadline (deadline auto-follows material/priority until edited)
+priority: 'normal',
+deadlineTouched: false,
 // Auto-fields
 units: 1,
 price: 30,
-deadline: futureDateStr(5),
+deadline: futureDateStr(turnaroundFor('zirconia', 'normal')),
 });
 
 const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
+
+// Material/priority changes re-suggest the deadline unless manually edited.
+const updateWithDeadline = (field, value) => setForm(prev => {
+const next = { ...prev, [field]: value };
+if (!prev.deadlineTouched) {
+next.deadline = futureDateStr(turnaroundFor(
+field === 'material' ? value : prev.material,
+field === 'priority' ? value : prev.priority
+));
+}
+return next;
+});
 
 const handleSubmit = () => {
 // Build the case object
@@ -4319,6 +4335,7 @@ type: form.material,
 typeOfWork: form.typeOfWork,
 teeth: form.selectedTeeth,
 shade: form.shade,
+priority: form.priority,
 units: form.selectedTeeth.length || form.units,
 price: form.price,
 status: 'pending',
@@ -4395,7 +4412,7 @@ const active = form.material === value;
 return (
 <button
 type="button"
-onClick={() => update('material', value)}
+onClick={() => updateWithDeadline('material', value)}
 className="p-3 rounded-lg flex flex-col items-center gap-2 transition"
 style={{
 background: active ? `${color}15` : 'rgba(241, 245, 249, 0.6)',
@@ -4480,6 +4497,46 @@ backdropFilter: 'blur(10px)',
           <Field label={t.clinic} value={form.clinic} onChange={v => update('clinic', v)} />
           <Field label={t.caseDate} value={form.date} onChange={v => update('date', v)} type="date" />
           <Field label={t.shade} value={form.shade} onChange={v => update('shade', v)} placeholder="A1, A2, B1..." />
+        </div>
+        {/* VITA quick-select shade chips */}
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {SHADE_OPTIONS.map(s => (
+            <button key={s} type="button" onClick={() => update('shade', s)}
+              className="px-2 py-1 rounded-md text-[11px] font-bold mono transition"
+              style={{
+                background: form.shade === s ? 'linear-gradient(135deg, #06b6d4, #2563eb)' : '#f1f5f9',
+                color: form.shade === s ? '#fff' : '#46586f',
+                border: `1px solid ${form.shade === s ? 'transparent' : 'rgba(15,50,90,0.10)'}`,
+                cursor: 'pointer',
+              }}>{s}</button>
+          ))}
+        </div>
+        {/* Priority + auto-suggested deadline */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+          <div>
+            <label className="block text-[10.5px] uppercase tracking-wider font-semibold mb-1" style={{ color: 'var(--text-3)' }}>
+              {lang === 'ar' ? 'الأولوية' : 'Priority'}
+            </label>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => updateWithDeadline('priority', 'normal')}
+                className="flex-1 py-2 rounded-lg text-[12px] font-bold transition"
+                style={{ background: form.priority === 'normal' ? 'rgba(8,145,178,0.12)' : '#f6f8fb', color: form.priority === 'normal' ? '#0891b2' : '#8593a6', border: `1.5px solid ${form.priority === 'normal' ? 'rgba(8,145,178,0.4)' : 'rgba(15,50,90,0.10)'}`, cursor: 'pointer' }}>
+                {lang === 'ar' ? 'عادي' : 'Normal'}
+              </button>
+              <button type="button" onClick={() => updateWithDeadline('priority', 'rush')}
+                className="flex-1 py-2 rounded-lg text-[12px] font-bold transition flex items-center justify-center gap-1.5"
+                style={{ background: form.priority === 'rush' ? 'rgba(225,29,72,0.10)' : '#f6f8fb', color: form.priority === 'rush' ? '#e11d48' : '#8593a6', border: `1.5px solid ${form.priority === 'rush' ? 'rgba(225,29,72,0.4)' : 'rgba(15,50,90,0.10)'}`, cursor: 'pointer' }}>
+                <Zap size={13} /> {lang === 'ar' ? 'مستعجل' : 'RUSH'}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="block text-[10.5px] uppercase tracking-wider font-semibold mb-1" style={{ color: 'var(--text-3)' }}>
+              {t.deadline} {!form.deadlineTouched && <span style={{ color: '#059669' }}>({lang === 'ar' ? 'تلقائي حسب النوع' : 'auto by type'})</span>}
+            </label>
+            <input className="themed" type="date" value={form.deadline}
+              onChange={e => setForm(prev => ({ ...prev, deadline: e.target.value, deadlineTouched: true }))} />
+          </div>
         </div>
       </section>
 
@@ -4772,11 +4829,12 @@ style={{ fontFamily: mono ? 'monospace' : 'inherit' }}
 //  CASES VIEW
 // ═══════════════════════════════════════════════════════════════════════
 function CasesView({ ctx }) {
-const { state, t, lang, isRtl, setField, addItem, removeItem, removeItemUndo, logAudit } = ctx;
+const { state, setState, t, lang, isRtl, setField, addItem, removeItem, removeItemUndo, logAudit } = ctx;
 const [filter, setFilter] = useState('all');
 const [search, setSearch] = useState('');
 const [showQrCase, setShowQrCase] = useState(null);
 const [showIntakeModal, setShowIntakeModal] = useState(false);
+const [remakeCase, setRemakeCase] = useState(null); // case pending a remake-reason pick
 
 const typeIcons = {
 zirconia: Smile, emax: Smile, implant: Bone, veneer: Smile,
@@ -4858,11 +4916,19 @@ className={`tab-btn ${filter === s ? 'active' : ''} whitespace-nowrap`}
         const overdue = left !== null && left < 0;
         return (
           <div key={c.id} className="glass rounded-xl p-4 data-card relative overflow-hidden">
-            {c.remake && (
-              <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest" style={{ background: 'rgba(248, 113, 113, 0.15)', color: '#f87171' }}>
-                {t.remake}
-              </div>
-            )}
+            <div className="absolute top-2 right-2 flex items-center gap-1">
+              {c.priority === 'rush' && (
+                <div className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest flex items-center gap-0.5" style={{ background: 'rgba(225,29,72,0.12)', color: '#e11d48', border: '1px solid rgba(225,29,72,0.3)' }}>
+                  <Zap size={8} /> {lang === 'ar' ? 'مستعجل' : 'RUSH'}
+                </div>
+              )}
+              {c.remake && (
+                <div className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest" style={{ background: 'rgba(248, 113, 113, 0.15)', color: '#f87171' }}
+                  title={c.remakeReason ? (REMAKE_REASONS.find(r => r.id === c.remakeReason) || {})[lang] : ''}>
+                  {t.remake}{c.remakeReason ? ` · ${((REMAKE_REASONS.find(r => r.id === c.remakeReason) || {})[lang]) || c.remakeReason}` : ''}
+                </div>
+              )}
+            </div>
             <div className="flex items-start gap-3 mb-3">
               <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${statusColors[c.status]}18`, border: `1px solid ${statusColors[c.status]}30` }}>
                 <TypeIcon size={16} color={statusColors[c.status]} />
@@ -4882,6 +4948,16 @@ className={`tab-btn ${filter === s ? 'active' : ''} whitespace-nowrap`}
             <room.icon size={9} />
             {lang === 'ar' ? room.ar : room.en}
           </span>
+          {c.shade && (
+            <span className="mono text-[10.5px] font-bold px-2 py-0.5 rounded" style={{ background: 'rgba(217,119,6,0.10)', color: '#b45309', border: '1px solid rgba(217,119,6,0.25)' }}>
+              {c.shade}
+            </span>
+          )}
+          {Array.isArray(c.teeth) && c.teeth.length > 0 && (
+            <span className="mono text-[10.5px] font-semibold px-2 py-0.5 rounded" title={c.teeth.join(', ')} style={{ background: 'rgba(8,145,178,0.08)', color: '#0e7490', border: '1px solid rgba(8,145,178,0.2)' }}>
+              🦷 {c.teeth.length <= 4 ? c.teeth.join(',') : `${c.teeth.slice(0, 4).join(',')} +${c.teeth.length - 4}`}
+            </span>
+          )}
         </div>
 
         <div className="grid grid-cols-3 gap-2 mb-3">
@@ -4890,12 +4966,24 @@ className={`tab-btn ${filter === s ? 'active' : ''} whitespace-nowrap`}
             <div className="mono text-sm font-bold" style={{ color: 'var(--text)' }}>{c.units}</div>
           </div>
           {(() => {
-            // Color-coded deadline system
+            // Color-coded deadline system. Delivered cases are done — never
+            // flag them as overdue/urgent regardless of the old deadline.
             let dlColor = '#34d399'; // Green = safe
             let dlBg = 'rgba(52, 211, 153, 0.08)';
             let dlBorder = 'rgba(52, 211, 153, 0.2)';
             let dlIcon = CheckCircle2;
             let dlLabel = t.deadlineSafe;
+            if (c.status === 'delivered') {
+              return (
+                <div className="text-center p-2 rounded-lg" style={{ background: dlBg, border: `1px solid ${dlBorder}` }}>
+                  <div className="flex items-center justify-center gap-1 mb-0.5">
+                    <CheckCircle2 size={9} color={dlColor} />
+                    <div className="text-[8.5px] uppercase tracking-wider font-bold" style={{ color: dlColor }}>{t.delivered}</div>
+                  </div>
+                  <div className="mono text-sm font-bold" style={{ color: dlColor }}>✓</div>
+                </div>
+              );
+            }
             if (overdue) {
               dlColor = '#f87171';
               dlBg = 'rgba(248, 113, 113, 0.15)';
@@ -4958,7 +5046,14 @@ className={`tab-btn ${filter === s ? 'active' : ''} whitespace-nowrap`}
             <QrCode size={11} color="#a78bfa" />
           </button>
           <button
-            onClick={() => setField('cases', c.id, 'remake', !c.remake)}
+            onClick={() => {
+              if (c.remake) {
+                // Clearing a remake also clears its reason.
+                setState(s => ({ ...s, cases: s.cases.map(x => x.id === c.id ? { ...x, remake: false, remakeReason: null } : x) }));
+              } else {
+                setRemakeCase(c);
+              }
+            }}
             className="w-7 h-7 rounded flex items-center justify-center"
             style={{ background: c.remake ? 'rgba(248, 113, 113, 0.15)' : 'rgba(120, 180, 255, 0.06)', border: `1px solid ${c.remake ? 'rgba(248, 113, 113, 0.3)' : 'rgba(120, 180, 255, 0.12)'}` }}
             title={t.remake}
@@ -4982,6 +5077,38 @@ className={`tab-btn ${filter === s ? 'active' : ''} whitespace-nowrap`}
 
 {showQrCase && <CaseDetailModal caseData={showQrCase} ctx={ctx} onClose={() => setShowQrCase(null)} />}
 {showIntakeModal && <CaseIntakeModal ctx={ctx} onClose={() => setShowIntakeModal(false)} onSave={handleSaveCase} />}
+
+{/* Remake reason picker */}
+{remakeCase && (
+<div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }} onClick={() => setRemakeCase(null)}>
+<div className="glass-strong rounded-2xl w-full max-w-sm p-5" style={{ background: '#ffffff', animation: 'slideUp 0.25s ease-out' }} onClick={e => e.stopPropagation()}>
+<div className="flex items-center gap-2 mb-1">
+<RefreshCw size={16} color="#e11d48" />
+<div className="text-[14px] font-bold" style={{ color: 'var(--text)' }}>
+{lang === 'ar' ? 'سبب الإعادة' : 'Remake Reason'}
+</div>
+</div>
+<div className="text-[11.5px] mb-4" style={{ color: 'var(--text-3)' }}>
+{remakeCase.caseId} · {remakeCase.patient || '—'}
+</div>
+<div className="grid grid-cols-2 gap-2">
+{REMAKE_REASONS.map(r => (
+<button key={r.id}
+onClick={() => {
+setState(s => ({ ...s, cases: s.cases.map(x => x.id === remakeCase.id ? { ...x, remake: true, remakeReason: r.id } : x) }));
+logAudit?.('remake', `${remakeCase.caseId} · ${lang === 'ar' ? r.ar : r.en}`);
+setRemakeCase(null);
+}}
+className="py-2.5 px-2 rounded-lg text-[12px] font-bold transition"
+style={{ background: '#f6f8fb', border: '1px solid rgba(15,50,90,0.10)', color: '#0f2942', cursor: 'pointer' }}>
+{lang === 'ar' ? r.ar : r.en}
+</button>
+))}
+</div>
+<button onClick={() => setRemakeCase(null)} className="btn btn-ghost w-full mt-3 justify-center">{t.cancel}</button>
+</div>
+</div>
+)}
 
 </div>
 
@@ -7169,6 +7296,42 @@ return (
       ) : (
         <div className="text-center py-10 text-sm" style={{ color: 'var(--text-3)' }}>—</div>
       )}
+      {/* Root-cause breakdown: why cases came back, and which clinics send them */}
+      {(() => {
+        const remakes = state.cases.filter(c => c.remake);
+        if (!remakes.length) return null;
+        const byReason = REMAKE_REASONS
+          .map(r => ({ ...r, count: remakes.filter(c => c.remakeReason === r.id).length }))
+          .filter(r => r.count > 0)
+          .sort((a, b) => b.count - a.count);
+        const byClinic = Object.entries(remakes.reduce((m, c) => { const k = c.clinic || '—'; m[k] = (m[k] || 0) + 1; return m; }, {}))
+          .sort((a, b) => b[1] - a[1]).slice(0, 3);
+        const max = byReason[0]?.count || 1;
+        return (
+          <div className="mt-4 pt-4 border-t" style={{ borderColor: 'rgba(15,50,90,0.08)' }}>
+            <div className="text-[11px] uppercase tracking-wider font-bold mb-2" style={{ color: 'var(--text-3)' }}>
+              {lang === 'ar' ? 'أسباب الإعادة' : 'Remake reasons'}
+            </div>
+            <div className="space-y-1.5">
+              {byReason.map(r => (
+                <div key={r.id} className="flex items-center gap-2">
+                  <div className="text-[11.5px] w-28 shrink-0 truncate" style={{ color: 'var(--text-2)' }}>{lang === 'ar' ? r.ar : r.en}</div>
+                  <div className="flex-1 h-2.5 rounded-full overflow-hidden" style={{ background: '#eef2f7' }}>
+                    <div className="h-full rounded-full" style={{ width: `${(r.count / max) * 100}%`, background: 'linear-gradient(90deg, #f87171, #e11d48)' }} />
+                  </div>
+                  <div className="mono text-[11px] font-bold w-5 text-center" style={{ color: '#e11d48' }}>{r.count}</div>
+                </div>
+              ))}
+            </div>
+            {byClinic.length > 0 && (
+              <div className="mt-3 text-[11px]" style={{ color: 'var(--text-3)' }}>
+                {lang === 'ar' ? 'الأكثر إعادة: ' : 'Most remakes from: '}
+                {byClinic.map(([k, v]) => `${k} (${v})`).join(' · ')}
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </div>
 
 <div className="glass rounded-2xl p-5">
@@ -7605,16 +7768,10 @@ URL.revokeObjectURL(url);
 };
 
 const exportCsv = () => {
-// Escape a value for CSV: wrap in quotes and double internal quotes if it
-// contains a comma, quote, or newline. Prevents column-breaking & garbling.
-const esc = (v) => {
-const s = v === null || v === undefined ? '' : String(v);
-return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
 const cols = ['caseId', 'patient', 'clinic', 'type', 'units', 'price', 'status', 'technician', 'date', 'remake', 'currentRoom', 'deadline'];
 const lines = ['Case ID,Patient,Clinic,Type,Units,Price,Status,Technician,Date,Remake,Room,Deadline'];
 state.cases.forEach(c => {
-lines.push(cols.map(k => esc(c[k])).join(','));
+lines.push(cols.map(k => csvEscape(c[k])).join(','));
 });
 // Prepend UTF-8 BOM so Excel renders Arabic text correctly.
 const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
