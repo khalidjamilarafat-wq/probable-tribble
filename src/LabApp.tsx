@@ -6872,7 +6872,7 @@ return (
 //  PAYMENT RECORD MODAL
 // ═══════════════════════════════════════════════════════════════════════
 function PaymentRecordModal({ invoice, ctx, onClose, onSave }) {
-const { t, lang, fmt2 } = ctx;
+const { t, lang, fmt2, money } = ctx;
 const [form, setForm] = useState({
 date: new Date().toISOString().split('T')[0],
 amount: invoice.balance,
