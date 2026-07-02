@@ -19,10 +19,10 @@ const json = (status: number, body: unknown) =>
     headers: { 'content-type': 'application/json' },
   });
 
-const normalizeLabId = (v: unknown) =>
+export const normalizeLabId = (v: unknown) =>
   String(v || '').trim().toLowerCase().replace(/[^a-z0-9-_]/g, '').slice(0, 40);
 
-async function hashPin(labId: string, pin: string): Promise<string> {
+export async function hashPin(labId: string, pin: string): Promise<string> {
   const data = new TextEncoder().encode(`evora:${labId}:${pin}`);
   const digest = await crypto.subtle.digest('SHA-256', data);
   return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');
