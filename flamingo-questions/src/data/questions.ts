@@ -104,25 +104,9 @@ export const categories: Category[] = [
   {
     id: "dares",
     label: "Dares",
-    emoji: "😈",
-    description: "Spicy dares for two — from sweet heat to bold. 18+",
+    emoji: "😈🔥",
+    description: "300 dares for two — sweet heat, bold challenges, and the forbidden round. 18+",
     color: "#9333ea",
-    mature: true,
-  },
-  {
-    id: "special",
-    label: "Special for You",
-    emoji: "💝",
-    description: "The boldest round — daring challenges for two. 18+",
-    color: "#e11d48",
-    mature: true,
-  },
-  {
-    id: "dontenter",
-    label: "Don't Enter",
-    emoji: "🚫",
-    description: "Dares, challenges & the forbidden deck — all in one. You were warned. 18+",
-    color: "#111827",
     mature: true,
   },
 ];

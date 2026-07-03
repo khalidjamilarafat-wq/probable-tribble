@@ -110,7 +110,7 @@ const T: { id: string; text: string; ar: string }[] = [
 
 export const special: Question[] = T.map(({ id, text, ar }) => ({
   id,
-  categoryId: "special",
+  categoryId: "dares",
   text,
   ar,
 }));
