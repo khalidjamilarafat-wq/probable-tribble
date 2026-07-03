@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import { Category, Question } from "../data/questions";
 
 type Props = {
@@ -12,6 +13,8 @@ type Props = {
   onHome: () => void;
 };
 
+const SWIPE_THRESHOLD = 80;
+
 export default function QuestionCard({
   question,
   category,
@@ -23,8 +26,56 @@ export default function QuestionCard({
   onPrev,
   onHome,
 }: Props) {
+  const startX = useRef<number | null>(null);
+  const [dragX, setDragX] = useState(0);
+  const [leaving, setLeaving] = useState<"left" | "right" | null>(null);
+
+  function onPointerDown(e: React.PointerEvent) {
+    startX.current = e.clientX;
+    (e.target as Element).setPointerCapture?.(e.pointerId);
+  }
+
+  function onPointerMove(e: React.PointerEvent) {
+    if (startX.current === null) return;
+    setDragX(e.clientX - startX.current);
+  }
+
+  function finishDrag() {
+    if (startX.current === null) return;
+    const dx = dragX;
+    startX.current = null;
+    if (dx <= -SWIPE_THRESHOLD) {
+      // swipe left → next card
+      setLeaving("left");
+      setTimeout(() => {
+        setLeaving(null);
+        setDragX(0);
+        onNext();
+      }, 160);
+    } else if (dx >= SWIPE_THRESHOLD && index > 0) {
+      // swipe right → previous card
+      setLeaving("right");
+      setTimeout(() => {
+        setLeaving(null);
+        setDragX(0);
+        onPrev();
+      }, 160);
+    } else {
+      setDragX(0);
+    }
+  }
+
+  const dragging = startX.current !== null;
+  const offset = leaving === "left" ? -480 : leaving === "right" ? 480 : dragX;
+  const style: React.CSSProperties = {
+    transform: `translateX(${offset}px) rotate(${offset / 40}deg)`,
+    opacity: leaving ? 0 : 1 - Math.min(Math.abs(dragX) / 400, 0.4),
+    transition: dragging ? "none" : "transform 0.16s ease-out, opacity 0.16s ease-out",
+    touchAction: "pan-y",
+  };
+
   return (
-    <div className="mx-auto flex min-h-screen max-w-xl flex-col gap-6 px-4 py-8">
+    <div className="mx-auto flex min-h-screen max-w-xl flex-col gap-6 overflow-hidden px-4 py-8">
       <div className="flex items-center justify-between">
         <button onClick={onHome} className="text-sm font-medium text-flamingo-700 hover:underline">
           ← Categories
@@ -43,7 +94,12 @@ export default function QuestionCard({
 
       <div
         key={question.id}
-        className="card-enter flex flex-1 flex-col items-center justify-center gap-6 rounded-3xl border border-flamingo-100 bg-white p-8 text-center shadow-lg shadow-flamingo-200/40"
+        style={style}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={finishDrag}
+        onPointerCancel={finishDrag}
+        className="card-enter flex flex-1 cursor-grab select-none flex-col items-center justify-center gap-6 rounded-3xl border border-flamingo-100 bg-white p-8 text-center shadow-lg shadow-flamingo-200/40 active:cursor-grabbing"
       >
         <span
           className="rounded-full px-3 py-1 text-xs font-semibold"
@@ -59,6 +115,7 @@ export default function QuestionCard({
         >
           ❤️
         </button>
+        <span className="text-xs text-gray-400">⇠ اسحب للسؤال التالي · اسحب للسابق ⇢</span>
       </div>
 
       <div className="flex items-center gap-3">

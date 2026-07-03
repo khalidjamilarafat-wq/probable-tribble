@@ -1,4 +1,4 @@
-import { spicyQuestions, spicyDares } from "./spicy";
+import { spicyQuestions, spicyDares, specialDares } from "./spicy";
 
 export type Category = {
   id: string;
@@ -79,6 +79,14 @@ export const categories: Category[] = [
     emoji: "😈",
     description: "Spicy dares for two — from sweet heat to bold. 18+",
     color: "#9333ea",
+    mature: true,
+  },
+  {
+    id: "special",
+    label: "Special for You",
+    emoji: "💝",
+    description: "The boldest round — 50 daring challenges for two. 18+",
+    color: "#e11d48",
     mature: true,
   },
   {
@@ -197,4 +205,9 @@ const coreQuestions: Question[] = [
 ];
 
 // 18+ decks live in their own file: src/data/spicy.ts
-export const questions: Question[] = [...coreQuestions, ...spicyQuestions, ...spicyDares];
+export const questions: Question[] = [
+  ...coreQuestions,
+  ...spicyQuestions,
+  ...spicyDares,
+  ...specialDares,
+];
