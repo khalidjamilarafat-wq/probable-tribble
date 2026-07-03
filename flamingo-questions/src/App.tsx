@@ -24,6 +24,8 @@ export default function App() {
   const [deck, setDeck] = useState<typeof questions>([]);
   const [pendingMature, setPendingMature] = useState<string | null>(null);
   const [matureConfirmed, setMatureConfirmed] = useState(false);
+  const [pin, setPin] = useState("");
+  const [pinError, setPinError] = useState(false);
   const [players, setPlayers] = useState<Players | null>(() => loadPlayers());
   const [pendingNames, setPendingNames] = useState<string | null>(null);
   const [editingPlayers, setEditingPlayers] = useState(false);
@@ -111,25 +113,54 @@ export default function App() {
       {pendingMature && (
         <div className="fixed inset-0 z-10 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl">
-            <div className="text-3xl">🔥</div>
+            <div className="text-3xl">🔒</div>
             <h3 className="mt-2 text-lg font-bold text-gray-800">18+ content</h3>
             <p className="mt-1 text-sm text-gray-500">
-              This deck has flirty, adult questions meant for consenting partners. Continue?
+              This deck is for adults only. Enter the PIN to continue.
             </p>
-            <div className="mt-5 flex flex-col gap-2">
+            <input
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              value={pin}
+              autoFocus
+              onChange={(e) => {
+                setPin(e.target.value.replace(/\D/g, ""));
+                setPinError(false);
+              }}
+              placeholder="• • • •"
+              className={`mt-4 w-full rounded-xl border px-3 py-3 text-center text-2xl tracking-[0.5em] outline-none focus:ring-2 ${
+                pinError
+                  ? "border-red-400 focus:ring-red-100"
+                  : "border-flamingo-200 focus:border-flamingo-400 focus:ring-flamingo-100"
+              }`}
+            />
+            {pinError && <p className="mt-2 text-sm font-medium text-red-500">Wrong PIN — try again.</p>}
+            <div className="mt-4 flex flex-col gap-2">
               <button
                 onClick={() => {
-                  setMatureConfirmed(true);
-                  const categoryId = pendingMature;
-                  setPendingMature(null);
-                  proceedAfterGate(categoryId);
+                  if (pin === "2458") {
+                    setMatureConfirmed(true);
+                    setPin("");
+                    setPinError(false);
+                    const categoryId = pendingMature;
+                    setPendingMature(null);
+                    proceedAfterGate(categoryId);
+                  } else {
+                    setPinError(true);
+                  }
                 }}
-                className="w-full rounded-xl bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
+                disabled={pin.length < 4}
+                className="w-full rounded-xl bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-40"
               >
-                I'm 18+, continue
+                Unlock
               </button>
               <button
-                onClick={() => setPendingMature(null)}
+                onClick={() => {
+                  setPendingMature(null);
+                  setPin("");
+                  setPinError(false);
+                }}
                 className="w-full rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50"
               >
                 Cancel
