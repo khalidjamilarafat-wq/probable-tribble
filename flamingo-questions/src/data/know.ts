@@ -1,0 +1,26 @@
+import type { Question } from "./questions";
+
+export const know: Question[] = [
+  { id: "k1", categoryId: "know", text: "What's a memory from childhood that still shapes who you are?" },
+  { id: "k2", categoryId: "know", text: "Who has influenced you the most, and how?" },
+  { id: "k3", categoryId: "know", text: "What's something about you that surprises people once they know you well?" },
+  { id: "k4", categoryId: "know", text: "What does a perfect ordinary day look like for you?" },
+  { id: "k5", categoryId: "know", text: "What's a skill or hobby you wish you'd kept up with?" },
+  { id: "k6", categoryId: "know", text: "What's your love language, and has it changed over time?" },
+  { id: "k7", categoryId: "know", text: "What's a belief you held strongly when you were younger that you don't hold now?" },
+  { id: "k8", categoryId: "know", text: "What kind of environment helps you feel most like yourself?" },
+  { id: "k9", categoryId: "know", text: "What's something you're proud of that not many people know about?" },
+  { id: "k10", categoryId: "know", text: "How do you recharge after a hard week?" },
+  { id: "k11", categoryId: "know", text: "What's a tradition from your family you'd want to keep or start with me?" },
+  { id: "k12", categoryId: "know", text: "What's something you used to be afraid of that you've overcome?" },
+  { id: "nk1", categoryId: "know", text: "What small habit of yours tells the real story of who you are?", ar: "شو العادة الصغيرة اللي بتحكي مين إنت عن جد؟" },
+  { id: "nk2", categoryId: "know", text: "{G}, what did you want to be when you were ten?", ar: "يا {G}، شو كان حلمك لما كنتي بعمر العشر سنين؟" },
+  { id: "nk3", categoryId: "know", text: "What's a place from your past you'd love to show me?", ar: "شو المكان من ماضيك اللي بتحب تفرجيني ياه؟" },
+  { id: "nk4", categoryId: "know", text: "What compliment do you never get tired of hearing?", ar: "شو المديح اللي عمرك ما بتمل تسمعه؟" },
+  { id: "nk5", categoryId: "know", text: "What food instantly takes you back to childhood?", ar: "شو الأكلة اللي بترجعك عالطفولة فورًا؟" },
+  { id: "nk6", categoryId: "know", text: "{B}, who in your family are you most like — and how?", ar: "يا {B}، لمين بالعيلة بتشبه أكتر شي — وكيف؟" },
+  { id: "nk7", categoryId: "know", text: "What's something you collect, save, or can't throw away?", ar: "شو الشي اللي بتجمعه أو ما فيك تكبّه؟" },
+  { id: "nk8", categoryId: "know", text: "What's your hidden talent I might not know about yet?", ar: "شو موهبتك المخفية اللي يمكن بعدني ما بعرفها؟" },
+  { id: "nk9", categoryId: "know", text: "What was your favorite school subject, and does it still show?", ar: "شو كانت مادتك المفضلة بالمدرسة، ولسا مبيّنة فيك؟" },
+  { id: "nk10", categoryId: "know", text: "What rule did you grow up with that you've kept — or broken?", ar: "شو القاعدة اللي تربيت عليها وبعدك محافظ عليها — أو كسرتها؟" },
+];

@@ -3,7 +3,9 @@ import { categories, questions } from "./data/questions";
 import CategoryGrid from "./components/CategoryGrid";
 import QuestionCard from "./components/QuestionCard";
 import FavoritesView from "./components/FavoritesView";
+import PlayersModal from "./components/PlayersModal";
 import { useFavorites } from "./hooks/useFavorites";
+import { Players, loadPlayers, savePlayers, usesNames } from "./lib/players";
 
 type View = { screen: "home" } | { screen: "deck"; categoryId: string | "all" } | { screen: "favorites" };
 
@@ -22,18 +24,23 @@ export default function App() {
   const [deck, setDeck] = useState<typeof questions>([]);
   const [pendingMature, setPendingMature] = useState<string | null>(null);
   const [matureConfirmed, setMatureConfirmed] = useState(false);
+  const [players, setPlayers] = useState<Players | null>(() => loadPlayers());
+  const [pendingNames, setPendingNames] = useState<string | null>(null);
+  const [editingPlayers, setEditingPlayers] = useState(false);
   const { favorites, toggle, remove } = useFavorites();
 
   const categoryById = useMemo(() => Object.fromEntries(categories.map((c) => [c.id, c])), []);
 
-  function openDeck(categoryId: string | "all") {
+  function poolFor(categoryId: string | "all") {
     // "Shuffle all" stays family-friendly: 18+ decks are only reachable
     // through their own gated categories.
-    const pool =
-      categoryId === "all"
-        ? questions.filter((q) => !categoryById[q.categoryId]?.mature)
-        : questions.filter((q) => q.categoryId === categoryId);
-    setDeck(shuffle(pool));
+    return categoryId === "all"
+      ? questions.filter((q) => !categoryById[q.categoryId]?.mature)
+      : questions.filter((q) => q.categoryId === categoryId);
+  }
+
+  function openDeck(categoryId: string | "all") {
+    setDeck(shuffle(poolFor(categoryId)));
     setIndex(0);
     setView({ screen: "deck", categoryId });
   }
@@ -42,6 +49,15 @@ export default function App() {
     const category = categoryId !== "all" ? categoryById[categoryId] : undefined;
     if (category?.mature && !matureConfirmed) {
       setPendingMature(categoryId);
+      return;
+    }
+    proceedAfterGate(categoryId);
+  }
+
+  function proceedAfterGate(categoryId: string | "all") {
+    const needsNames = poolFor(categoryId).some((q) => usesNames(q.text));
+    if (needsNames && !players) {
+      setPendingNames(categoryId);
       return;
     }
     openDeck(categoryId);
@@ -74,6 +90,7 @@ export default function App() {
         index={index}
         total={deck.length}
         isFavorite={favorites.has(q.id)}
+        players={players}
         onToggleFavorite={() => toggle(q.id)}
         onNext={next}
         onPrev={prev}
@@ -88,6 +105,8 @@ export default function App() {
         onSelect={startDeck}
         favoritesCount={favorites.size}
         onOpenFavorites={() => setView({ screen: "favorites" })}
+        players={players}
+        onEditPlayers={() => setEditingPlayers(true)}
       />
       {pendingMature && (
         <div className="fixed inset-0 z-10 flex items-center justify-center bg-black/40 px-4">
@@ -103,7 +122,7 @@ export default function App() {
                   setMatureConfirmed(true);
                   const categoryId = pendingMature;
                   setPendingMature(null);
-                  openDeck(categoryId);
+                  proceedAfterGate(categoryId);
                 }}
                 className="w-full rounded-xl bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
               >
@@ -118,6 +137,26 @@ export default function App() {
             </div>
           </div>
         </div>
+      )}
+      {(pendingNames !== null || editingPlayers) && (
+        <PlayersModal
+          initial={players}
+          onSave={(p) => {
+            setPlayers(p);
+            savePlayers(p);
+            setEditingPlayers(false);
+            const categoryId = pendingNames;
+            setPendingNames(null);
+            if (categoryId !== null) openDeck(categoryId);
+          }}
+          onCancel={() => {
+            setEditingPlayers(false);
+            const categoryId = pendingNames;
+            setPendingNames(null);
+            // Play anyway — cards show a heart where a name would go.
+            if (categoryId !== null) openDeck(categoryId);
+          }}
+        />
       )}
     </>
   );

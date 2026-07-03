@@ -1,0 +1,26 @@
+import type { Question } from "./questions";
+
+export const playful: Question[] = [
+  { id: "p1", categoryId: "playful", text: "If we had to survive a zombie apocalypse together, what's our division of labor?" },
+  { id: "p2", categoryId: "playful", text: "What's the most 'us' inside joke we have?" },
+  { id: "p3", categoryId: "playful", text: "If you could instantly master one random skill, what would it be?" },
+  { id: "p4", categoryId: "playful", text: "What's a food combination you love that most people think is weird?" },
+  { id: "p5", categoryId: "playful", text: "If our relationship were a movie genre, what would it be and why?" },
+  { id: "p6", categoryId: "playful", text: "What's your most-used emoji when texting me?" },
+  { id: "p7", categoryId: "playful", text: "If we swapped bodies for a day, what's the first thing you'd do?" },
+  { id: "p8", categoryId: "playful", text: "What's a fictional world you'd want us to live in together?" },
+  { id: "p9", categoryId: "playful", text: "What's the most ridiculous thing you've ever done to make me laugh — or would do?" },
+  { id: "p10", categoryId: "playful", text: "Cats, dogs, both, or neither — and how many is too many?" },
+  { id: "p11", categoryId: "playful", text: "What's a talent show act we could actually pull off as a team?" },
+  { id: "p12", categoryId: "playful", text: "If we got matching tattoos on a whim, what would they be?" },
+  { id: "npl1", categoryId: "playful", text: "{B}, if {G} were a superhero, what's her power and her weakness?", ar: "يا {B}، لو {G} بطلة خارقة، شو قوتها وشو نقطة ضعفها؟" },
+  { id: "npl2", categoryId: "playful", text: "What's the weirdest thing you two could win a couples' trophy for?", ar: "شو أغرب شي ممكن تربحوا فيه كأس أفضل ثنائي؟" },
+  { id: "npl3", categoryId: "playful", text: "If your relationship had a mascot, what animal is it?", ar: "لو لعلاقتكن تميمة، أي حيوان بتكون؟" },
+  { id: "npl4", categoryId: "playful", text: "{G}, describe {B} using only three emojis.", ar: "يا {G}، وصفي {B} بس بتلات إيموجيات." },
+  { id: "npl5", categoryId: "playful", text: "What would you two be famous for on social media?", ar: "شو الشي اللي ممكن تشتهروا فيه عالسوشال ميديا؟" },
+  { id: "npl6", categoryId: "playful", text: "Invent a holiday just for you two. What are the traditions?", ar: "اخترعوا عيد خاص فيكن إنتو التنين. شو طقوسه؟" },
+  { id: "npl7", categoryId: "playful", text: "If we opened a tiny shop together, what would we sell?", ar: "لو فتحنا محل صغير سوا، شو منبيع؟" },
+  { id: "npl8", categoryId: "playful", text: "{B}, what movie role was {G} born to play?", ar: "يا {B}، شو الدور السينمائي اللي انخلقت {G} لتلعبه؟" },
+  { id: "npl9", categoryId: "playful", text: "What's the funniest misunderstanding we've ever had?", ar: "شو أطرف سوء تفاهم صار بيناتنا؟" },
+  { id: "npl10", categoryId: "playful", text: "If our life had background music, what plays when we argue about food?", ar: "لو حياتنا إلها موسيقى خلفية، شو بيشتغل لما نتناقش عالأكل؟" },
+];

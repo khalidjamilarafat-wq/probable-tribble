@@ -1,0 +1,26 @@
+import type { Question } from "./questions";
+
+export const deep: Question[] = [
+  { id: "d1", categoryId: "deep", text: "What does 'home' mean to you?" },
+  { id: "d2", categoryId: "deep", text: "What's a value you'll never compromise on?" },
+  { id: "d3", categoryId: "deep", text: "When do you feel most understood by someone?" },
+  { id: "d4", categoryId: "deep", text: "What's something you needed to hear during a hard time, and did you get it?" },
+  { id: "d5", categoryId: "deep", text: "What does success actually mean to you, outside of money or status?" },
+  { id: "d6", categoryId: "deep", text: "What's a fear you rarely say out loud?" },
+  { id: "d7", categoryId: "deep", text: "How has heartbreak or loss changed the way you love?" },
+  { id: "d8", categoryId: "deep", text: "What do you think people misunderstand about you?" },
+  { id: "d9", categoryId: "deep", text: "What's something you're still working on forgiving — yourself or someone else?" },
+  { id: "d10", categoryId: "deep", text: "What makes you feel most alive?" },
+  { id: "d11", categoryId: "deep", text: "What's a question you wish I would ask you more often?" },
+  { id: "d12", categoryId: "deep", text: "What does unconditional love look like to you, practically?" },
+  { id: "ndp1", categoryId: "deep", text: "When was the last time you felt truly proud of yourself?", ar: "إيمتى آخر مرة حسيت بفخر حقيقي بحالك؟" },
+  { id: "ndp2", categoryId: "deep", text: "What lesson did life teach you the hard way?", ar: "شو الدرس اللي علمتك ياه الحياة بالطريقة الصعبة؟" },
+  { id: "ndp3", categoryId: "deep", text: "{G}, what do you need more of in your life right now?", ar: "يا {G}، شو الشي اللي محتاجيته أكتر بحياتك هلق؟" },
+  { id: "ndp4", categoryId: "deep", text: "What part of your life feels most 'you' these days?", ar: "شو الجزء من حياتك اللي حاسس إنه بيشبهك أكتر شي هالأيام؟" },
+  { id: "ndp5", categoryId: "deep", text: "What's something you've changed your mind about this year?", ar: "شو الشي اللي غيّرت رأيك فيه هالسنة؟" },
+  { id: "ndp6", categoryId: "deep", text: "If your younger self saw you today, what would surprise them most?", ar: "لو شافك حالك الصغير اليوم، شو أكتر شي رح يفاجئه؟" },
+  { id: "ndp7", categoryId: "deep", text: "What do you do when no one is watching that says a lot about you?", ar: "شو بتعمل لما ما حدا شايفك وبيقول كتير عنك؟" },
+  { id: "ndp8", categoryId: "deep", text: "{B}, what weight have you been carrying that you can put down here?", ar: "يا {B}، شو الهم اللي حاملو وفيك تحطه هون؟" },
+  { id: "ndp9", categoryId: "deep", text: "What does peace of mind look like for you, practically?", ar: "شو يعني راحة البال بالنسبة إلك، عمليًا؟" },
+  { id: "ndp10", categoryId: "deep", text: "What do you hope people say about you when you're not in the room?", ar: "شو بتتمنى الناس يقولوا عنك لما ما تكون موجود؟" },
+];

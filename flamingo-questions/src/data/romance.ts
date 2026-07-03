@@ -1,0 +1,26 @@
+import type { Question } from "./questions";
+
+export const romance: Question[] = [
+  { id: "r1", categoryId: "romance", text: "What was your first impression of me, honestly?" },
+  { id: "r2", categoryId: "romance", text: "What's a small gesture that makes you feel most loved?" },
+  { id: "r3", categoryId: "romance", text: "What's your favorite memory of us so far?" },
+  { id: "r4", categoryId: "romance", text: "When did you know you had feelings for me?" },
+  { id: "r5", categoryId: "romance", text: "What's a quality of mine that you didn't expect to fall for?" },
+  { id: "r6", categoryId: "romance", text: "What does the ideal date night look like for you right now?" },
+  { id: "r7", categoryId: "romance", text: "What's something I do that makes you feel desired?" },
+  { id: "r8", categoryId: "romance", text: "What's a place you'd love for us to go together someday?" },
+  { id: "r9", categoryId: "romance", text: "How do you like to be comforted when you're upset?" },
+  { id: "r10", categoryId: "romance", text: "What's a compliment you don't hear often but would love to?" },
+  { id: "r11", categoryId: "romance", text: "What's one thing that's gotten better about 'us' since we started?" },
+  { id: "r12", categoryId: "romance", text: "What song reminds you of me, or of us?" },
+  { id: "nrm1", categoryId: "romance", text: "{B}, what's the exact moment you felt luckiest to be with {G}?", ar: "يا {B}، شو اللحظة اللي حسيت فيها إنك أكتر واحد محظوظ لأنك مع {G}؟" },
+  { id: "nrm2", categoryId: "romance", text: "{G}, what little thing does {B} do that melts you every time?", ar: "يا {G}، شو الشي الصغير اللي بيعمله {B} وبيدوّبك كل مرة؟" },
+  { id: "nrm3", categoryId: "romance", text: "What date haven't we tried yet that you'd love?", ar: "شو الموعد اللي لسا ما جربناه وبتتمنى نعمله؟" },
+  { id: "nrm4", categoryId: "romance", text: "Describe the best hug we've ever shared.", ar: "وصفوا أحلى حضن صار بيناتكن." },
+  { id: "nrm5", categoryId: "romance", text: "What look do I give you that you've memorized?", ar: "شو النظرة اللي بطلعها فيك وحافظها عن غيب؟" },
+  { id: "nrm6", categoryId: "romance", text: "{B}, finish this: 'The first thing I noticed about {G} was…'", ar: "يا {B}، كمّل: \"أول شي لفتني بـ {G} كان…\"" },
+  { id: "nrm7", categoryId: "romance", text: "What's your favorite way we say 'I love you' without words?", ar: "شو أحلى طريقة منقول فيها \"بحبك\" بدون كلام؟" },
+  { id: "nrm8", categoryId: "romance", text: "If we relived one date exactly as it was, which one?", ar: "لو منعيد موعد واحد متل ما كان بالضبط، أي واحد؟" },
+  { id: "nrm9", categoryId: "romance", text: "What song do you secretly connect to us?", ar: "شو الأغنية اللي سرًا بتربطها فينا؟" },
+  { id: "nrm10", categoryId: "romance", text: "{G}, when do you feel most beautiful around {B}?", ar: "يا {G}، إيمتى بتحسي حالك أحلى شي وإنتي حد {B}؟" },
+];

@@ -1,12 +1,21 @@
 import { categories } from "../data/questions";
+import { Players } from "../lib/players";
 
 type Props = {
   onSelect: (categoryId: string | "all") => void;
   favoritesCount: number;
   onOpenFavorites: () => void;
+  players: Players | null;
+  onEditPlayers: () => void;
 };
 
-export default function CategoryGrid({ onSelect, favoritesCount, onOpenFavorites }: Props) {
+export default function CategoryGrid({
+  onSelect,
+  favoritesCount,
+  onOpenFavorites,
+  players,
+  onEditPlayers,
+}: Props) {
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-10">
       <header className="text-center">
@@ -48,6 +57,13 @@ export default function CategoryGrid({ onSelect, favoritesCount, onOpenFavorites
         className="mt-2 flex items-center justify-center gap-2 rounded-2xl border border-flamingo-200 bg-white px-6 py-3 font-medium text-flamingo-700 transition hover:bg-flamingo-50"
       >
         ❤️ Saved questions {favoritesCount > 0 ? `(${favoritesCount})` : ""}
+      </button>
+
+      <button
+        onClick={onEditPlayers}
+        className="flex items-center justify-center gap-2 rounded-2xl border border-flamingo-200 bg-white px-6 py-3 font-medium text-flamingo-700 transition hover:bg-flamingo-50"
+      >
+        👩‍❤️‍👨 Players{players ? `: ${players.g} & ${players.b}` : ""}
       </button>
     </div>
   );
