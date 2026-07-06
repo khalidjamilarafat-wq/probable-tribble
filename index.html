@@ -41,9 +41,8 @@
 
   /* ── HEADER ────────────────────────────── */
   .brand-header{
-    text-align:center; padding:26px 16px 30px; margin-bottom:8px;
+    text-align:center; padding:30px 16px 30px; margin-bottom:8px;
   }
-  .crescent{ width:64px; height:auto; margin:0 auto 6px; display:block; }
   .brand-name{
     font-family:'Cormorant Garamond',serif; font-weight:600;
     font-size:46px; letter-spacing:14px; color:var(--ink);
@@ -267,9 +266,6 @@
 
   <!-- HEADER -->
   <div class="brand-header">
-    <svg class="crescent" viewBox="0 0 120 60" xmlns="http://www.w3.org/2000/svg" aria-label="ivory">
-      <path d="M8 8 C 20 46, 100 46, 112 8 C 96 30, 24 30, 8 8 Z" fill="#C9A86A" opacity="0.92"/>
-    </svg>
     <div class="brand-name">IVORY</div>
     <div class="brand-divider"></div>
     <div class="brand-sub">Dental Laboratory</div>
@@ -493,23 +489,20 @@ function defaultState(){
    {id:uid(),labelAr:"مواد الفينير",labelEn:"Veneer materials",descAr:"للأسنان غير الزيركون",descEn:"Non-zirconia units",type:"veneer",val:1.0}
   ],
   salaries:[
-   {id:uid(),labelAr:"فني CAD/CAM",labelEn:"CAD/CAM Tech",descAr:"تصميم وفريزة",descEn:"Design & milling",val:850,count:2},
-   {id:uid(),labelAr:"فني الجبص",labelEn:"Model Tech",descAr:"صب الموديلات",descEn:"Pouring models",val:650,count:1},
-   {id:uid(),labelAr:"فني السيراميك",labelEn:"Ceramic Tech",descAr:"طبقات وتلوين",descEn:"Layering",val:700,count:1},
-   {id:uid(),labelAr:"مدير المختبر",labelEn:"Lab Manager",descAr:"إدارة وإشراف",descEn:"Management",val:1750,count:1},
-   {id:uid(),labelAr:"مندوب",labelEn:"Sales Rep",descAr:"علاقات العيادات",descEn:"Clinic relations",val:400,count:1},
-   {id:uid(),labelAr:"سائق",labelEn:"Driver",descAr:"توصيل واستلام",descEn:"Pickup & delivery",val:300,count:2},
-   {id:uid(),labelAr:"تسويق",labelEn:"Marketing",descAr:"إعلانات ومحتوى",descEn:"Ads & content",val:250,count:1}
+   {id:uid(),labelAr:"فني CAD/CAM",labelEn:"CAD/CAM Tech",descAr:"تصميم وفريزة",descEn:"Design & milling",val:800,count:1},
+   {id:uid(),labelAr:"فني السيراميك",labelEn:"Ceramic Tech",descAr:"طبقات وتلوين",descEn:"Layering",val:650,count:1},
+   {id:uid(),labelAr:"مدير المختبر",labelEn:"Lab Manager / Owner",descAr:"إدارة وإشراف",descEn:"Management",val:900,count:1},
+   {id:uid(),labelAr:"سائق",labelEn:"Driver",descAr:"توصيل واستلام",descEn:"Pickup & delivery",val:300,count:1}
   ],
   fixed:[
-   {id:uid(),labelAr:"الإيجار",labelEn:"Rent",descAr:"إيجار المختبر",descEn:"Lab rent",val:850},
-   {id:uid(),labelAr:"كهرباء وماء",labelEn:"Electricity & Water",descAr:"فواتير شهرية",descEn:"Monthly bills",val:50},
+   {id:uid(),labelAr:"الإيجار",labelEn:"Rent",descAr:"إيجار المختبر",descEn:"Lab rent",val:400},
+   {id:uid(),labelAr:"كهرباء وماء",labelEn:"Electricity & Water",descAr:"فواتير شهرية",descEn:"Monthly bills",val:40},
    {id:uid(),labelAr:"إنترنت",labelEn:"Internet",descAr:"اتصال",descEn:"Connection",val:20},
-   {id:uid(),labelAr:"استهلاك CAD/CAM",labelEn:"CAD/CAM Depreciation",descAr:"إهلاك الأجهزة",descEn:"Equipment depreciation",val:500},
-   {id:uid(),labelAr:"مصاريف متنوعة",labelEn:"Miscellaneous",descAr:"نثريات",descEn:"Sundry",val:200}
+   {id:uid(),labelAr:"استهلاك CAD/CAM",labelEn:"CAD/CAM Depreciation",descAr:"إهلاك الأجهزة",descEn:"Equipment depreciation",val:300},
+   {id:uid(),labelAr:"مصاريف متنوعة",labelEn:"Miscellaneous",descAr:"نثريات",descEn:"Sundry",val:100}
   ],
-  quantities:[100,300,500,1000],
-  sellLow:25, sellHigh:35, zirPct:80, targetProfit:3000, currency:"KD"
+  quantities:[50,100,200,300],
+  sellLow:25, sellHigh:35, zirPct:80, targetProfit:1500, currency:"KD"
  };
 }
 
