@@ -83,7 +83,7 @@ brand: "Evora Dental",
 tagline: "نظام إدارة المختبر الذكي",
 dashboard: "لوحة التحكم", calculator: "حاسبة التكلفة", cases: "إدارة الحالات",
 inventory: "المخزون", technicians: "الفنيون", analytics: "التحليلات",
-aiAssistant: "المساعد الذكي", settings: "الإعدادات",
+aiAssistant: "المساعد الذكي", aiAgents: "وكلاء الذكاء", settings: "الإعدادات",
 flow: "خط الإنتاج", scanner: "مسح QR", display: "شاشة العرض",
 overview: "نظرة عامة", liveStats: "إحصائيات مباشرة",
 totalRevenue: "الإيرادات الإجمالية", monthlyProfit: "الربح الشهري",
@@ -418,7 +418,7 @@ brand: "Evora Dental",
 tagline: "Intelligent Lab Management System",
 dashboard: "Dashboard", calculator: "Cost Calculator", cases: "Case Management",
 inventory: "Inventory", technicians: "Technicians", analytics: "Analytics",
-aiAssistant: "AI Assistant", settings: "Settings",
+aiAssistant: "AI Assistant", aiAgents: "AI Agents", settings: "Settings",
 flow: "Production Flow", scanner: "QR Scanner", display: "Display",
 overview: "Overview", liveStats: "Live Statistics",
 totalRevenue: "Total Revenue", monthlyProfit: "Monthly Profit",
@@ -954,10 +954,10 @@ function seedInventory() {
 
 // Which views each role can open. Manager sees everything.
 const ROLE_VIEWS = {
-  manager: ['dashboard', 'flow', 'display', 'scanner', 'cases', 'inventory', 'technicians', 'accounting', 'analytics', 'ai', 'settings'],
-  reception: ['dashboard', 'flow', 'display', 'scanner', 'cases', 'inventory'],
+  manager: ['dashboard', 'flow', 'display', 'scanner', 'cases', 'inventory', 'technicians', 'accounting', 'analytics', 'agents', 'ai', 'settings'],
+  reception: ['dashboard', 'flow', 'display', 'scanner', 'cases', 'inventory', 'agents'],
   technician: ['flow', 'display', 'scanner', 'cases'],
-  accountant: ['dashboard', 'accounting', 'analytics', 'cases', 'display'],
+  accountant: ['dashboard', 'accounting', 'analytics', 'cases', 'display', 'agents'],
 };
 const ROLE_LABELS = {
   manager: { ar: 'مدير', en: 'Manager', color: '#7c3aed' },
@@ -1756,6 +1756,7 @@ body[dir="rtl"] .accent-bar { border-radius: 3px 0 0 3px; }
     {view === 'accounting' && <AccountingView ctx={ctx} />}
     {view === 'analytics' && <AnalyticsView ctx={ctx} />}
     {view === 'ai' && <AIAssistant ctx={ctx} />}
+    {view === 'agents' && <AIAgentsView ctx={ctx} setView={setView} />}
     {view === 'settings' && <SettingsView ctx={ctx} setLang={setLang} handleReset={handleReset} />}
   </div>
 </main>
@@ -1928,6 +1929,7 @@ const navItems = [
 { id: 'technicians', icon: UserCog, label: t.technicians, group: 'ops' },
 { id: 'accounting', icon: DollarSign, label: t.accounting, group: 'ops' },
 { id: 'analytics', icon: BarChart3, label: t.analytics, group: 'insight' },
+{ id: 'agents', icon: Cpu, label: t.aiAgents, group: 'insight' },
 { id: 'ai', icon: Sparkles, label: t.aiAssistant, group: 'insight' },
 { id: 'settings', icon: Settings, label: t.settings, group: 'system' },
 ].filter(item => !allowedViews || allowedViews.includes(item.id));
@@ -7367,6 +7369,325 @@ return (
 // ═══════════════════════════════════════════════════════════════════════
 //  AI ASSISTANT (uses Claude API)
 // ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
+//  AI AGENT SUITE — specialized agents that act on live lab data.
+//  "Rule" agents compute instantly from the data; "AI" agents send a focused
+//  task to the Claude/Groq function (falling back to the local computation
+//  when no AI provider is configured, exactly like the assistant does).
+// ═══════════════════════════════════════════════════════════════════════
+function AIAgentsView({ ctx, setView }) {
+const { state, t, lang, kpis, money, fmt2, getName } = ctx;
+const [running, setRunning] = useState(null);
+const [result, setResult] = useState(null);
+const L = (ar, en) => (lang === 'ar' ? ar : en);
+const todayStr = new Date().toISOString().split('T')[0];
+const caseLabel = (c) => `${c.caseId} · ${c.patient || '—'}`;
+
+const statusLabel = (s) => ({
+pending: L('بالانتظار', 'pending'), inProgress: L('قيد التنفيذ', 'in progress'),
+completed: L('جاهزة', 'ready'), delivered: L('مسلّمة', 'delivered'),
+}[s] || s);
+const reasonLabel = (r) => ({
+shade: L('درجة اللون', 'shade'), fit: L('عدم انطباق', 'fit'), fracture: L('كسر', 'fracture'),
+margins: L('الحواف', 'margins'), occlusion: L('الإطباق', 'occlusion'),
+impression: L('الطبعة', 'impression'), other: L('أخرى', 'other'),
+}[r] || r);
+const matFor = (type) => ({
+zirconia: L('زيركون متعدد الطبقات', 'Zirconia multilayer'), emax: L('إيماكس (e.max)', 'IPS e.max'),
+pmma: L('PMMA مؤقت', 'PMMA (temporary)'), implant: L('Ti-base + زيركون', 'Ti-base + Zirconia'),
+denture: L('أكريل حراري', 'Heat-cure acrylic'), metal: L('كوبلت-كروم', 'Co-Cr'),
+}[type] || L('حسب الحالة', 'case-dependent'));
+const missingFields = (c) => {
+const m = c.missing || {};
+const names = { impression: L('طبعة', 'impression'), bite: L('عضة', 'bite'), shade: L('درجة لونية', 'shade'), implant: L('بيانات زرعة', 'implant data') };
+const out = Object.keys(names).filter(k => m[k]);
+if (c.intakeStatus === 'incomplete' && !out.length) out.push(L('معلومات ناقصة', 'incomplete info'));
+return out.map(k => names[k] || k);
+};
+
+// Derived, memoised slices of the live data every agent draws from.
+const d = useMemo(() => {
+const cases = state.cases || [];
+const inv = state.inventory || [];
+const invoices = state.invoices || [];
+const dl = (c) => { const x = daysUntil(c.deadline); return x === null ? 99 : x; };
+const activeCases = cases.filter(c => c.status === 'pending' || c.status === 'inProgress');
+const overdue = cases.filter(c => c.status !== 'delivered' && dl(c) < 0);
+const awaiting = cases.filter(c => c.status === 'completed');
+const lowStock = inv.filter(i => (i.stock ?? 0) <= (i.reorderAt ?? 0));
+const incomplete = cases.filter(c => c.status !== 'delivered' && (c.intakeStatus === 'incomplete' || (c.missing && Object.values(c.missing).some(Boolean))));
+const rushSoon = activeCases.filter(c => c.priority === 'rush' || dl(c) <= 1);
+const remakes = cases.filter(c => c.remake);
+const outstanding = invoices.filter(i => (i.balance ?? 0) > 0);
+const overdueInv = outstanding.filter(i => i.dueDate && i.dueDate < todayStr);
+const deliveredNoInv = cases.filter(c => c.status === 'delivered' && !invoices.some(iv => iv.caseLinkId === c.id || iv.caseId === c.caseId));
+const delivered = cases.filter(c => c.status === 'delivered');
+const onTime = delivered.length ? (delivered.filter(c => !c.remake).length / delivered.length) * 100 : 100;
+return { cases, inv, invoices, activeCases, overdue, awaiting, lowStock, incomplete, rushSoon, remakes, outstanding, overdueInv, deliveredNoInv, onTime, dl };
+}, [state.cases, state.inventory, state.invoices]);
+
+const byDoctor = useMemo(() => {
+const m = {};
+d.activeCases.forEach(c => { const k = c.doctorName || L('غير محدد', 'Unknown'); (m[k] = m[k] || []).push(c); });
+return m;
+}, [d.activeCases, lang]);
+
+// Compact snapshot handed to the AI so it can reason over live numbers.
+const buildCtx = () => [
+`Cases: total ${d.cases.length}, active ${d.activeCases.length}, overdue ${d.overdue.length}, awaiting delivery ${d.awaiting.length}, remakes ${d.remakes.length}, remake rate ${fmt2(kpis.remakeRate)}%.`,
+`Revenue ${money(kpis.totalRev)}. Outstanding invoices: ${d.outstanding.length}, overdue: ${d.overdueInv.length}.`,
+`Low stock: ${d.lowStock.map(i => getName(i)).join(', ') || 'none'}.`,
+].join('\n');
+
+const callAI = async (userPrompt) => {
+try {
+const res = await fetch('/.netlify/functions/claude', {
+method: 'POST', headers: { 'content-type': 'application/json' },
+body: JSON.stringify({ labContext: buildCtx(), messages: [{ role: 'user', content: userPrompt }] }),
+});
+if (res.ok) { const j = await res.json(); if (j && j.reply && !j.fallback) return j.reply; }
+} catch { /* fall back to local computation */ }
+return null;
+};
+
+// Each agent: local() always returns a real data-driven result; AI agents
+// additionally build a prompt() for a richer, natural-language answer.
+const AGENTS = [
+{
+id: 'intake', icon: FileText, ai: true, tone: '#0891b2',
+title: L('استلام الوصفة', 'Case Intake'),
+desc: L('يقرأ الوصفة، ينشئ الحالة، ويكشف الناقص قبل بدء العمل.', 'Reads the Rx, creates the case, and flags missing info before work starts.'),
+local: () => d.incomplete.length ? {
+headline: L(`${d.incomplete.length} حالة تحتاج معلومات إضافية قبل البدء`, `${d.incomplete.length} cases need more info before work starts`),
+items: d.incomplete.slice(0, 14).map(c => ({ tone: 'warn', text: `${caseLabel(c)} — ${L('ناقص', 'missing')}: ${missingFields(c).join('، ')}` })),
+} : { headline: L('كل الحالات مكتملة الاستلام ✅', 'All intakes are complete ✅'), items: [] },
+prompt: () => `You are a dental-lab intake assistant. For each case below, write ONE short line telling reception exactly what to request from the referring doctor to complete the prescription. Reply in ${lang === 'ar' ? 'Arabic' : 'English'}.\n` +
+d.incomplete.slice(0, 14).map(c => `- ${c.caseId} ${c.patient || ''} (${c.type}), missing: ${missingFields(c).join(', ')}`).join('\n'),
+},
+{
+id: 'cad', icon: Cpu, ai: true, tone: '#2563eb',
+title: L('التصميم CAD', 'CAD Design'),
+desc: L('يقترح المادة والدرجة اللونية وبارامترات التصميم للحالة.', 'Suggests material, shade, and design parameters for the case.'),
+local: () => {
+const q = d.activeCases.filter(c => ['reception', 'plaster', 'digital', 'cadcam'].includes(c.currentRoom));
+return {
+headline: L(`${q.length} حالة في مسار التصميم`, `${q.length} cases in the design queue`),
+items: q.slice(0, 14).map(c => ({ tone: 'info', text: `${caseLabel(c)} — ${matFor(c.type)}${c.shade ? ` · ${L('درجة', 'shade')} ${c.shade}` : ''} · ${c.units} ${L('وحدة', 'units')}` })),
+};
+},
+prompt: () => `You are a dental CAD design assistant. For each case suggest the material, a shade approach, and one short design tip. Reply in ${lang === 'ar' ? 'Arabic' : 'English'}.\n` +
+d.activeCases.filter(c => ['reception', 'plaster', 'digital', 'cadcam'].includes(c.currentRoom)).slice(0, 14)
+.map(c => `- ${c.caseId} ${c.type} (${c.typeOfWork || ''}), ${c.units}u, shade ${c.shade || '?'}, teeth ${(c.teeth || []).join(',')}`).join('\n'),
+},
+{
+id: 'scheduler', icon: Calendar, ai: false, tone: '#7c3aed',
+title: L('جدولة الإنتاج', 'Production Scheduler'),
+desc: L('يرتّب الحالات حسب الأولوية والموعد وينبّه على التأخير.', 'Orders cases by priority and due date and flags delays.'),
+local: () => {
+const ordered = [...d.activeCases].sort((a, b) => d.dl(a) - d.dl(b));
+return {
+headline: L(`${d.activeCases.length} نشطة · ${d.overdue.length} متأخرة · ${d.rushSoon.length} عاجلة`, `${d.activeCases.length} active · ${d.overdue.length} overdue · ${d.rushSoon.length} urgent`),
+items: ordered.slice(0, 14).map(c => {
+const x = d.dl(c);
+const tone = x < 0 ? 'crit' : x <= 1 ? 'warn' : 'good';
+const when = x < 0 ? L(`متأخرة ${Math.abs(x)} يوم`, `${Math.abs(x)}d overdue`) : x === 0 ? L('اليوم', 'today') : L(`خلال ${x} يوم`, `in ${x}d`);
+return { tone, text: `${caseLabel(c)} — ${c.currentRoom} · ${c.technician || '—'} · ${when}` };
+}),
+};
+},
+},
+{
+id: 'qc', icon: ShieldCheck, ai: false, tone: '#059669',
+title: L('فحص الجودة', 'Quality Control'),
+desc: L('يرصد الحالات ذات مخاطر إعادة العمل قبل تسليمها.', 'Surfaces cases at remake risk before they are delivered.'),
+local: () => {
+const riskType = new Set(d.remakes.map(c => c.type));
+const atRisk = d.cases.filter(c => c.status !== 'delivered' && (c.priority === 'rush' || riskType.has(c.type) || c.currentRoom === 'ceramic'));
+return {
+headline: L(`${atRisk.length} حالة يُنصح بفحصها قبل التسليم`, `${atRisk.length} cases to check before delivery`),
+items: atRisk.slice(0, 14).map(c => {
+const reasons = [];
+if (c.priority === 'rush') reasons.push(L('عاجلة', 'rush'));
+if (riskType.has(c.type)) reasons.push(L('نوع سبق فيه إعادة', 'type had remakes'));
+if (c.currentRoom === 'ceramic') reasons.push(L('في السيراميك', 'in ceramics'));
+return { tone: 'warn', text: `${caseLabel(c)} — ${reasons.join('، ') || L('مراجعة', 'review')}` };
+}),
+};
+},
+},
+{
+id: 'inventory', icon: Package, ai: false, tone: '#d97706',
+title: L('المخزون', 'Inventory'),
+desc: L('يرصد المواد المنخفضة ويقترح كميات إعادة الطلب.', 'Detects low materials and suggests reorder quantities.'),
+local: () => d.lowStock.length ? {
+headline: L(`${d.lowStock.length} صنف عند/تحت حد إعادة الطلب`, `${d.lowStock.length} items at/below reorder point`),
+items: d.lowStock.map(i => {
+const qty = Math.max((i.reorderAt || 0) * 2 - (i.stock || 0), i.reorderAt || 1);
+return { tone: (i.stock || 0) === 0 ? 'crit' : 'warn', text: `${getName(i)} — ${L('متوفر', 'on hand')} ${i.stock}/${i.reorderAt} · ${L('اطلب', 'order')} ${qty} (${i.supplier || '—'})` };
+}),
+} : { headline: L('المخزون بحالة جيدة ✅', 'Stock is healthy ✅'), items: [] },
+},
+{
+id: 'billing', icon: DollarSign, ai: false, tone: '#0891b2',
+title: L('الفواتير', 'Invoicing'),
+desc: L('يرصد الحالات بلا فاتورة والمستحقات والفواتير المتأخرة.', 'Finds uninvoiced cases, outstanding balances, and overdue invoices.'),
+local: () => {
+const items = [];
+if (d.deliveredNoInv.length) items.push({ tone: 'warn', text: L(`${d.deliveredNoInv.length} حالة مسلّمة بلا فاتورة — بحاجة إصدار`, `${d.deliveredNoInv.length} delivered cases without an invoice`) });
+const outAmt = d.outstanding.reduce((s, i) => s + (i.balance || 0), 0);
+items.push({ tone: outAmt > 0 ? 'info' : 'good', text: L(`إجمالي المستحقات: ${money(outAmt)}`, `Total outstanding: ${money(outAmt)}`) });
+d.overdueInv.slice(0, 10).forEach(i => items.push({ tone: 'crit', text: `${i.invoiceNumber || i.caseId} — ${i.clinic || ''} · ${money(i.balance)} · ${L('متأخرة', 'overdue')}` }));
+return { headline: L(`${d.overdueInv.length} فاتورة متأخرة · ${d.outstanding.length} مستحقة`, `${d.overdueInv.length} overdue · ${d.outstanding.length} outstanding`), items };
+},
+},
+{
+id: 'comms', icon: Send, ai: true, tone: '#db2777',
+title: L('التواصل مع الأطباء', 'Doctor Comms'),
+desc: L('يصيغ رسائل تحديث حالة لكل طبيب عن حالاته.', 'Drafts a status-update message to each doctor about their cases.'),
+local: () => ({
+headline: L(`رسائل جاهزة لـ ${Object.keys(byDoctor).length} طبيب`, `Drafts for ${Object.keys(byDoctor).length} doctors`),
+items: Object.entries(byDoctor).slice(0, 10).map(([doc, list]) => ({ tone: 'info', text: `${doc}: ${list.map(c => `${c.caseId} (${statusLabel(c.status)})`).join('، ')}` })),
+}),
+prompt: () => `Draft a short, friendly WhatsApp-style status update to each doctor about their in-progress cases. One message per doctor. Reply in ${lang === 'ar' ? 'Arabic' : 'English'}.\n` +
+Object.entries(byDoctor).slice(0, 10).map(([doc, list]) => `${doc}: ${list.map(c => `${c.caseId} ${c.type} status=${c.status} due=${c.deadline}`).join('; ')}`).join('\n'),
+},
+{
+id: 'remake', icon: BarChart3, ai: true, tone: '#e11d48',
+title: L('تحليل إعادة العمل', 'Remake Analysis'),
+desc: L('يحلّل أسباب الإعادة ويقترح إجراءات لخفض النسبة.', 'Analyzes remake causes and suggests actions to cut the rate.'),
+local: () => {
+const byReason = {}; d.remakes.forEach(c => { const k = c.remakeReason || 'other'; byReason[k] = (byReason[k] || 0) + 1; });
+return {
+headline: L(`معدل الإعادة ${fmt2(kpis.remakeRate)}% · ${d.remakes.length} إعادة`, `Remake rate ${fmt2(kpis.remakeRate)}% · ${d.remakes.length} remakes`),
+items: Object.entries(byReason).sort((a, b) => b[1] - a[1]).map(([r, n]) => ({ tone: 'warn', text: `${reasonLabel(r)} — ${n} (${fmt2(n / Math.max(d.remakes.length, 1) * 100)}%)` })),
+};
+},
+prompt: () => {
+const byReason = {}; d.remakes.forEach(c => { const k = c.remakeReason || 'other'; byReason[k] = (byReason[k] || 0) + 1; });
+const byType = {}; d.remakes.forEach(c => { byType[c.type] = (byType[c.type] || 0) + 1; });
+return `You are a dental-lab QA analyst. Given this remake breakdown, identify the top root causes and suggest 3 concrete actions to reduce the remake rate. Reply in ${lang === 'ar' ? 'Arabic' : 'English'}.\n` +
+`Remake rate: ${fmt2(kpis.remakeRate)}%. Total remakes: ${d.remakes.length}.\nBy reason: ${Object.entries(byReason).map(([r, n]) => `${r}:${n}`).join(', ')}.\nBy type: ${Object.entries(byType).map(([r, n]) => `${r}:${n}`).join(', ')}.`;
+},
+},
+];
+
+const run = async (agent) => {
+setRunning(agent.id);
+const localRes = agent.local();
+let text = null;
+if (agent.ai) text = await callAI(agent.prompt());
+setResult({ agent, ...localRes, text, aiUsed: !!(agent.ai && text), fallback: !!(agent.ai && !text) });
+setRunning(null);
+};
+
+const toneColor = { crit: '#e11d48', warn: '#d97706', good: '#059669', info: '#0891b2' };
+const kpiStrip = [
+{ label: L('حالات قيد التنفيذ', 'Cases in progress'), value: d.activeCases.length },
+{ label: L('بانتظار التسليم', 'Awaiting delivery'), value: d.awaiting.length },
+{ label: L('التسليم بالموعد', 'On-time delivery'), value: `${fmt2(d.onTime)}%` },
+{ label: L('إيراد', 'Revenue'), value: money(kpis.totalRev) },
+{ label: L('نسبة إعادة العمل', 'Remake rate'), value: `${fmt2(kpis.remakeRate)}%` },
+];
+
+return (
+<div className="space-y-5">
+{/* Header */}
+<div className="flex flex-wrap items-end justify-between gap-3">
+<div>
+<div className="display-font text-xl font-bold" style={{ color: 'var(--text)' }}>
+{L('وكلاء الذكاء — Agent Suite', 'AI Agents — Agent Suite')}
+</div>
+<div className="text-[13px] mt-1 max-w-2xl" style={{ color: 'var(--text-2)' }}>
+{L('وكلاء متخصصون يشتغلون على بيانات مختبرك الحقيقية. شارة AI = مهمة نصّية بالذكاء الاصطناعي، وشارة قاعدة = أتمتة بقواعد فورية.',
+'Specialized agents working on your live lab data. An AI badge = an AI text task; a Rule badge = instant rule-based automation.')}
+</div>
+</div>
+<button onClick={() => setView('ai')} className="btn btn-ghost text-[13px]">
+<Bot size={15} /> {t.aiAssistant}
+</button>
+</div>
+
+{/* Compact secondary KPI strip */}
+<div className="glass rounded-xl overflow-hidden flex flex-wrap divide-x" style={{ borderColor: 'var(--border)' }}>
+{kpiStrip.map((k, i) => (
+<div key={i} className="flex-1 min-w-[130px] px-4 py-3" style={{ borderColor: 'var(--border)' }}>
+<div className="text-[11px]" style={{ color: 'var(--text-3)' }}>{k.label}</div>
+<div className="display-font text-lg font-bold mt-0.5" style={{ color: 'var(--text)' }}>{k.value}</div>
+</div>
+))}
+</div>
+
+{/* Agent grid — the centerpiece */}
+<div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3.5">
+{AGENTS.map(a => {
+const Icon = a.icon;
+return (
+<div key={a.id} className="glass rounded-2xl p-4 flex flex-col gap-3 data-card" style={{ borderColor: 'var(--border)' }}>
+<div className="flex items-start gap-3">
+<div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${a.tone}1a`, border: `1px solid ${a.tone}44` }}>
+<Icon size={21} color={a.tone} />
+</div>
+<div className="flex-1 min-w-0">
+<div className="text-[14.5px] font-bold leading-tight" style={{ color: 'var(--text)' }}>{a.title}</div>
+</div>
+<span className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0" style={{
+background: a.ai ? 'rgba(6,182,212,0.12)' : 'rgba(15,50,90,0.06)',
+color: a.ai ? '#0891b2' : 'var(--text-3)',
+border: a.ai ? '1px solid rgba(6,182,212,0.35)' : '1px solid var(--border)',
+}}>
+{a.ai ? 'AI' : L('قاعدة', 'Rule')}
+</span>
+</div>
+<div className="text-[12.5px] leading-snug flex-1" style={{ color: 'var(--text-2)' }}>{a.desc}</div>
+<button onClick={() => run(a)} disabled={running === a.id} className="btn btn-primary w-full justify-center text-[13px]" style={{ opacity: running === a.id ? 0.7 : 1 }}>
+{running === a.id ? <Loader2 size={15} className="animate-spin" /> : <Zap size={15} />}
+{running === a.id ? L('...يعمل', 'Running…') : L('تشغيل الوكيل', 'Launch agent')}
+</button>
+</div>
+);
+})}
+</div>
+
+{/* Result modal */}
+{result && (
+<div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(9,20,38,0.55)' }} onClick={() => setResult(null)}>
+<div className="glass-strong rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+<div className="px-5 py-4 border-b flex items-center gap-3" style={{ borderColor: 'var(--border)' }}>
+<div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${result.agent.tone}1a`, border: `1px solid ${result.agent.tone}44` }}>
+{React.createElement(result.agent.icon, { size: 18, color: result.agent.tone })}
+</div>
+<div className="flex-1 min-w-0">
+<div className="display-font text-base font-semibold" style={{ color: 'var(--text)' }}>{result.agent.title}</div>
+<div className="text-[11.5px]" style={{ color: 'var(--text-3)' }}>{result.headline}</div>
+</div>
+<button onClick={() => setResult(null)} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--bg)' }}><X size={16} color="var(--text-2)" /></button>
+</div>
+<div className="scroll-y p-5 space-y-2.5">
+{result.aiUsed && (
+<div className="text-[13.5px] whitespace-pre-wrap leading-relaxed rounded-xl p-3.5" style={{ background: 'rgba(6,182,212,0.06)', color: 'var(--text)' }}>{result.text}</div>
+)}
+{result.fallback && (
+<div className="text-[11.5px] rounded-lg px-3 py-2" style={{ background: 'rgba(245,185,66,0.10)', color: '#b45309' }}>
+{L('عرض محسوب محلياً — أضف مزوّد AI في إعدادات Netlify لإجابة نصّية أذكى.', 'Computed locally — add an AI provider in Netlify settings for a smarter written answer.')}
+</div>
+)}
+{(result.items || []).length === 0 && !result.aiUsed && (
+<div className="text-[13px]" style={{ color: 'var(--text-2)' }}>{result.headline}</div>
+)}
+{(result.items || []).map((it, i) => (
+<div key={i} className="flex items-start gap-2.5 rounded-xl px-3 py-2.5" style={{ background: 'var(--bg)' }}>
+<span className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: toneColor[it.tone] || 'var(--text-3)' }} />
+<span className="text-[13px]" style={{ color: 'var(--text)' }}>{it.text}</span>
+</div>
+))}
+</div>
+</div>
+</div>
+)}
+</div>
+);
+}
+
 function AIAssistant({ ctx }) {
 const { state, t, lang, kpis, totalFixed, totalSalaries, getName, matCostPerUnit, isRtl } = ctx;
 const [messages, setMessages] = useState([
