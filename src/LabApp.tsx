@@ -23,6 +23,7 @@ PolarRadiusAxis, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 ComposedChart, ReferenceLine
 } from 'recharts';
 import * as XLSX from 'xlsx';
+import jsQR from 'jsqr';
 
 // ═══════════════════════════════════════════════════════════════════════
 //  ROOMS DEFINITION (matches workflow PDF)
@@ -1078,6 +1079,16 @@ export default function DentalLabApp() {
 const [lang, setLang] = useState('en');
 const [state, setState] = useState(defaultState());
 const [view, setView] = useState('dashboard');
+// Shared case search/filter so the Dashboard search and Production-flow
+// stat boxes can drive what the Cases view shows.
+const [caseSearch, setCaseSearch] = useState('');
+const [caseFilter, setCaseFilter] = useState('all');
+// Jump to the Cases view pre-filtered (used by dashboard search + flow boxes).
+const goToCases = (opts = {}) => {
+setCaseFilter(opts.filter ?? 'all');
+setCaseSearch(opts.search ?? '');
+setView('cases');
+};
 const [loading, setLoading] = useState(true);
 const [savedFlash, setSavedFlash] = useState(false);
 const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -1501,6 +1512,7 @@ consPerUnit, kpis,
 notifications, moveCaseToRoom, moveCaseByQrCode, setActiveTech, showToast,
 money, activeCurrency, askConfirm, removeItemUndo,
 currentUser, logAudit, cloudConnect, cloudDisconnect, cloudPull, cloudStatus,
+caseSearch, setCaseSearch, caseFilter, setCaseFilter, goToCases,
 };
 
 if (loading) {
@@ -4876,7 +4888,11 @@ pending: '#f5b942', inProgress: '#0891b2', completed: '#a78bfa', delivered: '#34
 const filtered = state.cases.filter(c => {
 if (filter !== 'all' && filter !== 'remake' && c.status !== filter) return false;
 if (filter === 'remake' && !c.remake) return false;
-if (search && !c.caseId.toLowerCase().includes(search.toLowerCase()) && !c.patient.toLowerCase().includes(search.toLowerCase())) return false;
+if (search) {
+const q = search.toLowerCase().trim();
+const hay = [c.caseId, c.patient, c.doctorName, c.clinic, c.phone].map(x => (x || '').toLowerCase());
+if (!hay.some(h => h.includes(q))) return false;
+}
 return true;
 });
 
@@ -4906,7 +4922,7 @@ return (
 <div className="relative flex-1 min-w-[200px]">
 <Search size={14} color="#5d6e92" className={`absolute top-1/2 -translate-y-1/2 ${isRtl ? 'right-3' : 'left-3'}`} />
 <input
-className="themed" placeholder={t.search} value={search} onChange={e => setSearch(e.target.value)}
+className="themed" placeholder={lang === 'ar' ? 'ابحث بالمريض، رقم الحالة، أو الطبيب…' : 'Search by patient, case ID, or doctor…'} value={search} onChange={e => setSearch(e.target.value)}
 style={{ [isRtl ? 'paddingRight' : 'paddingLeft']: 34 }}
 />
 </div>
