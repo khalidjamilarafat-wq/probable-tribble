@@ -105,7 +105,7 @@ export const categories: Category[] = [
     id: "dares",
     label: "Dares",
     emoji: "😈🔥",
-    description: "300 dares for two — sweet heat, bold challenges, and the forbidden round. 18+",
+    description: "Bold dares only — daring challenges, confessions, and the forbidden round. 18+",
     color: "#9333ea",
     mature: true,
   },
