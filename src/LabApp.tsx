@@ -1734,6 +1734,7 @@ body[dir="rtl"] .accent-bar { border-radius: 3px 0 0 3px; }
       mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen}
       notifCount={notifications.length}
       allowedViews={allowedViews} cloudEnabled={!!state.cloud?.enabled} cloudError={cloudStatus.error}
+      currentUser={currentUser} onLogout={logoutUser}
     />
 
 <main className="flex-1 min-w-0 main-area">
@@ -1918,7 +1919,7 @@ style={{ background: '#f6f8fb', border: '1px solid rgba(15,50,90,0.10)', cursor:
 // ═══════════════════════════════════════════════════════════════════════
 //  SIDEBAR
 // ═══════════════════════════════════════════════════════════════════════
-function Sidebar({ view, setView, t, isRtl, lang, mobileMenuOpen, setMobileMenuOpen, notifCount, allowedViews, cloudEnabled, cloudError }) {
+function Sidebar({ view, setView, t, isRtl, lang, mobileMenuOpen, setMobileMenuOpen, notifCount, allowedViews, cloudEnabled, cloudError, currentUser, onLogout }) {
 const navItems = [
 { id: 'dashboard', icon: LayoutDashboard, label: t.dashboard, group: 'main' },
 { id: 'flow', icon: GitBranch, label: t.flow, group: 'main' },
@@ -1956,7 +1957,7 @@ background: 'linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(248, 250, 2
 backdropFilter: 'blur(20px)',
 }}
 >
-<SidebarContent navItems={navItems} view={view} handleClick={handleClick} t={t} lang={lang} notifCount={notifCount} cloudEnabled={cloudEnabled} cloudError={cloudError} />
+<SidebarContent navItems={navItems} view={view} handleClick={handleClick} t={t} lang={lang} notifCount={notifCount} cloudEnabled={cloudEnabled} cloudError={cloudError} currentUser={currentUser} onLogout={onLogout} />
 </aside>
 
   <aside
@@ -1968,14 +1969,14 @@ backdropFilter: 'blur(20px)',
       borderLeft: isRtl ? '1px solid rgba(120, 180, 255, 0.15)' : 'none',
     }}
   >
-    <SidebarContent navItems={navItems} view={view} handleClick={handleClick} t={t} lang={lang} notifCount={notifCount} cloudEnabled={cloudEnabled} cloudError={cloudError} />
+    <SidebarContent navItems={navItems} view={view} handleClick={handleClick} t={t} lang={lang} notifCount={notifCount} cloudEnabled={cloudEnabled} cloudError={cloudError} currentUser={currentUser} onLogout={onLogout} />
   </aside>
 </>
 
 );
 }
 
-function SidebarContent({ navItems, view, handleClick, t, lang, notifCount, cloudEnabled, cloudError }) {
+function SidebarContent({ navItems, view, handleClick, t, lang, notifCount, cloudEnabled, cloudError, currentUser, onLogout }) {
 return (
 
 <div className="p-5">
@@ -2044,6 +2045,31 @@ style={{ background: 'linear-gradient(135deg, #06b6d4, #2563eb)' }}
         : (lang === 'ar' ? 'البيانات محفوظة محلياً' : 'Data synced locally')}
     </div>
   </div>
+
+  {/* Current account + sign out (visible on mobile menu too) */}
+  {currentUser && (
+    <div className="mt-4 p-3 rounded-xl" style={{ background: '#f1f5f9', border: '1px solid rgba(15,50,90,0.10)' }}>
+      <div className="flex items-center gap-2.5 mb-2.5">
+        <div className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0" style={{ background: 'linear-gradient(135deg, #06b6d4, #2563eb)', color: '#fff' }}>
+          {currentUser.name.charAt(0).toUpperCase()}
+        </div>
+        <div className="leading-tight min-w-0">
+          <div className="text-[12.5px] font-bold truncate" style={{ color: 'var(--text)' }}>{currentUser.name}</div>
+          <div className="text-[9px] uppercase tracking-wider font-bold" style={{ color: (ROLE_LABELS[currentUser.role] || {}).color || 'var(--text-3)' }}>
+            {(ROLE_LABELS[currentUser.role] || {})[lang] || currentUser.role}
+          </div>
+        </div>
+      </div>
+      <button
+        onClick={onLogout}
+        className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[12.5px] font-semibold transition"
+        style={{ background: 'rgba(225,29,72,0.08)', border: '1px solid rgba(225,29,72,0.20)', color: '#e11d48' }}
+      >
+        <LogOut size={14} />
+        {lang === 'ar' ? 'تسجيل الخروج' : 'Sign out'}
+      </button>
+    </div>
+  )}
 </div>
 
 );
