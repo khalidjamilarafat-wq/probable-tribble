@@ -1,4 +1,4 @@
-# Evora Dental — Lab Management System
+# Halo — Dental Lab Management System
 
 An intelligent dental-lab management web app: dashboard, room-based production
 flow, QR scanner, case management, inventory, technicians, professional

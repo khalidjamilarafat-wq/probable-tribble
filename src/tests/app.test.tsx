@@ -112,7 +112,7 @@ describe('seeded workspace after login', () => {
     await typePin(user, '1234');
     await waitFor(() => expect(seesSome('Dashboard')).toBe(true));
 
-    expect(screen.getAllByText('Evora Dental').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Halo').length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Reception/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Ceramic/i).length).toBeGreaterThan(0);
   });
