@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HALO — حاسبة تكلفة السن</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Jost:wght@300;400;500;600&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  :root{
+    --bg:#EFE7DB;          /* page cream */
+    --panel:#F7F2EA;       /* card ivory */
+    --panel-2:#FBF8F2;
+    --taupe:#B8A48C;       /* warm taupe */
+    --taupe-d:#9B886F;
+    --ink:#5E5042;         /* warm brown text */
+    --ink-soft:#8A7C6C;
+    --line:#E2D7C5;
+    --line-soft:#EADFD0;
+    --rose:#C9A89E;        /* dusty rose accent */
+    --rose-d:#B6928A;
+    --gold:#C9A86A;
+    --green:#6B8E5A;
+    --red:#BC6A5A;
+    --shadow:0 8px 30px rgba(94,80,66,.10);
+    --shadow-sm:0 3px 12px rgba(94,80,66,.07);
+  }
+  body{
+    font-family:'Tajawal','Jost',-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:
+      radial-gradient(1200px 600px at 80% -10%, #F3EBDF 0%, transparent 60%),
+      radial-gradient(1000px 500px at -10% 110%, #E8DDCB 0%, transparent 55%),
+      var(--bg);
+    color:var(--ink); line-height:1.55; padding:20px; min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  body[dir="ltr"]{ font-family:'Jost',-apple-system,sans-serif; }
+  .container{ max-width:1380px; margin:0 auto; }
+
+  /* ── HEADER ────────────────────────────── */
+  .brand-header{
+    text-align:center; padding:30px 16px 30px; margin-bottom:8px;
+  }
+  .brand-name{
+    font-family:'Cormorant Garamond',serif; font-weight:600;
+    font-size:46px; letter-spacing:14px; color:var(--ink);
+    padding-inline-start:14px; line-height:1; margin-bottom:8px;
+  }
+  .brand-divider{ width:120px; height:1px; background:var(--taupe); margin:8px auto 8px; opacity:.6; }
+  .brand-sub{
+    font-family:'Jost',sans-serif; font-weight:300; font-size:11px;
+    letter-spacing:6px; color:var(--rose-d); text-transform:uppercase;
+    padding-inline-start:6px;
+  }
+  .brand-tool{
+    margin-top:14px; font-size:13px; letter-spacing:2px; color:var(--ink-soft);
+    text-transform:uppercase; font-weight:400;
+  }
+
+  /* ── TOP CONTROLS ──────────────────────── */
+  .controls{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-bottom:22px; }
+  .btn{
+    padding:9px 18px; border:1px solid var(--line); background:var(--panel);
+    color:var(--ink); border-radius:30px; cursor:pointer; font-size:13px;
+    font-weight:500; font-family:inherit; transition:all .18s; box-shadow:var(--shadow-sm);
+  }
+  .btn:hover{ background:var(--panel-2); transform:translateY(-1px); }
+  .btn.primary{ background:var(--ink); color:var(--panel); border-color:var(--ink); }
+  .btn.primary:hover{ background:#4d4236; }
+  .btn.save{ background:var(--taupe); color:#fff; border-color:var(--taupe); }
+  .btn.save:hover{ background:#a8957c; }
+  .save-status{ text-align:center; font-size:12px; color:var(--green); height:18px; opacity:0; transition:opacity .3s; margin-bottom:6px; }
+  .save-status.show{ opacity:1; }
+  .save-warn{
+    max-width:760px; margin:0 auto 22px; background:#FBF3E8; border:1px solid #EAD9BE;
+    color:#8a6d3b; padding:9px 14px; border-radius:12px; font-size:11.5px; text-align:center;
+  }
+
+  /* ── GRID ──────────────────────────────── */
+  .grid{ display:grid; grid-template-columns:390px 1fr; gap:20px; align-items:start; }
+  /* allow tracks to shrink below content min-width so wide table doesn't stretch both columns */
+  .grid > div{ min-width:0; }
+  @media (max-width:920px){ .grid{ grid-template-columns:1fr; } }
+
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:18px;
+    padding:22px; margin-bottom:16px; box-shadow:var(--shadow);
+  }
+  .panel-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
+  .panel h2{
+    font-family:'Cormorant Garamond',serif; font-size:22px; font-weight:600;
+    color:var(--ink); letter-spacing:.5px;
+  }
+  body[dir="ltr"] .panel h2{ font-family:'Cormorant Garamond',serif; }
+  .panel .hint{
+    font-size:11.5px; color:var(--ink-soft); font-weight:300; margin-bottom:14px;
+    padding-bottom:12px; border-bottom:1px solid var(--line-soft);
+  }
+
+  /* item rows */
+  .item-row{ display:flex; align-items:flex-start; gap:10px; padding:11px 0; border-bottom:1px solid var(--line-soft); }
+  .item-row:last-of-type{ border-bottom:none; }
+  .item-main{ flex:1; min-width:0; }
+  .item-label-edit{
+    width:100%; border:none; background:transparent; font-size:13.5px; font-weight:500;
+    color:var(--ink); font-family:inherit; padding:2px 0;
+  }
+  .item-label-edit:focus{ outline:none; border-bottom:1px solid var(--rose); }
+  .item-desc{
+    width:100%; border:none; background:transparent; font-size:11px; color:var(--ink-soft);
+    font-family:inherit; padding:0; font-weight:300;
+  }
+  .item-desc:focus{ outline:none; color:var(--ink); }
+  .item-val-wrap{ display:flex; align-items:center; gap:5px; }
+  .item-val{
+    width:76px; padding:7px 8px; border:1px solid var(--line); border-radius:10px; font-size:13px;
+    text-align:center; font-family:inherit; color:var(--ink); background:var(--panel-2);
+  }
+  .item-val:focus{ outline:none; border-color:var(--taupe); background:#fff; }
+  .item-mult{ width:50px; }
+  .item-unit{ font-size:10px; color:var(--ink-soft); min-width:22px; }
+  .del-btn{
+    border:none; background:transparent; color:var(--rose-d); cursor:pointer; font-size:17px;
+    line-height:1; padding:4px 5px; opacity:.55; border-radius:50%; transition:all .15s;
+  }
+  .del-btn:hover{ opacity:1; background:#F3E3DD; }
+
+  /* add zone (collapsible) */
+  .add-toggle{
+    margin-top:14px; width:100%; padding:10px; background:var(--panel-2);
+    border:1px dashed var(--taupe); border-radius:12px; cursor:pointer; font-family:inherit;
+    font-size:12.5px; font-weight:500; color:var(--ink); transition:all .15s; display:flex;
+    align-items:center; justify-content:center; gap:6px;
+  }
+  .add-toggle:hover{ background:#F1E9DC; }
+  .add-panel{ max-height:0; overflow:hidden; transition:max-height .35s ease, margin .25s, opacity .25s; opacity:0; }
+  .add-panel.open{ max-height:600px; opacity:1; margin-top:12px; }
+  .add-zone-label{ font-size:10px; color:var(--ink-soft); margin-bottom:8px; text-transform:uppercase; letter-spacing:1px; }
+  .suggest-chips{ display:flex; flex-wrap:wrap; gap:7px; margin-bottom:14px; }
+  .chip{
+    padding:6px 12px; background:var(--panel-2); border:1px solid var(--line); border-radius:20px;
+    font-size:11.5px; cursor:pointer; font-family:inherit; color:var(--ink); transition:all .15s;
+  }
+  .chip:hover{ background:var(--taupe); color:#fff; border-color:var(--taupe); transform:translateY(-1px); }
+  .add-custom{ display:flex; gap:7px; }
+  .add-custom input{
+    flex:1; padding:8px 11px; border:1px solid var(--line); border-radius:10px; font-size:12px;
+    font-family:inherit; background:var(--panel-2); color:var(--ink); min-width:0;
+  }
+  .add-custom input:focus{ outline:none; border-color:var(--taupe); background:#fff; }
+  .add-custom button{
+    padding:8px 16px; background:var(--rose); color:#fff; border:none; border-radius:10px;
+    font-size:12px; font-weight:500; cursor:pointer; font-family:inherit; white-space:nowrap;
+  }
+  .add-custom button:hover{ background:var(--rose-d); }
+
+  /* single rows */
+  .single-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 0; border-bottom:1px solid var(--line-soft); }
+  .single-row:last-child{ border-bottom:none; }
+  .single-row label{ font-size:13.5px; flex:1; font-weight:500; }
+  .single-row .desc-mini{ font-size:10.5px; color:var(--ink-soft); display:block; margin-top:1px; font-weight:300; }
+  .single-row input{
+    width:90px; padding:8px 10px; border:1px solid var(--line); border-radius:10px; font-size:13px;
+    text-align:center; font-family:inherit; color:var(--ink); background:var(--panel-2);
+  }
+  .single-row input:focus{ outline:none; border-color:var(--taupe); background:#fff; }
+  .single-row .unit{ font-size:11px; color:var(--ink-soft); min-width:26px; }
+
+  /* target box */
+  .target-box{
+    background:linear-gradient(135deg,#F3E7DF,#F7F0E8); border:1px solid var(--rose);
+    border-radius:18px; padding:20px; margin-bottom:16px; box-shadow:var(--shadow);
+  }
+  .target-box h2{ color:var(--rose-d); }
+  .target-input-row{ display:flex; align-items:center; gap:10px; margin-top:10px; flex-wrap:wrap; }
+  .target-input-row label{ font-size:14px; font-weight:500; }
+  .target-input-row input{
+    width:130px; padding:9px 12px; border:1px solid var(--rose); border-radius:12px; font-size:16px;
+    text-align:center; font-family:inherit; color:var(--rose-d); font-weight:700; background:#fff;
+  }
+
+  /* summary cards (small, subtle) */
+  .summary-cards{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
+  @media (max-width:640px){ .summary-cards{ grid-template-columns:repeat(2,1fr); } }
+  .summary-card{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:13px 14px;
+    box-shadow:var(--shadow-sm);
+  }
+  .summary-card .label{ font-size:9.5px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.6px; margin-bottom:5px; font-weight:500; }
+  .summary-card .value{ font-size:17px; font-weight:700; color:var(--ink); }
+  .summary-card .value small{ font-size:10px; color:var(--ink-soft); font-weight:400; }
+
+  .section-title{
+    font-family:'Cormorant Garamond',serif; font-size:24px; font-weight:600; color:var(--ink);
+    margin-bottom:4px; letter-spacing:.5px;
+  }
+  .section-hint{ font-size:11.5px; color:var(--ink-soft); font-weight:300; margin-bottom:14px; }
+  .results-section{ margin-bottom:24px; }
+
+  /* scenario tabs */
+  .scenario-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .scenario-tab{
+    padding:10px 18px; background:var(--panel); border:1px solid var(--line); border-radius:30px;
+    cursor:pointer; font-size:12.5px; font-weight:500; color:var(--ink-soft); font-family:inherit;
+    transition:all .18s; box-shadow:var(--shadow-sm);
+  }
+  .scenario-tab:hover{ color:var(--ink); border-color:var(--taupe); }
+  .scenario-tab.active{ background:var(--ink); color:var(--panel); border-color:var(--ink); }
+
+  /* chart */
+  .chart-wrap{
+    background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:20px 16px 12px;
+    margin-bottom:18px; box-shadow:var(--shadow);
+  }
+  .chart-title{ font-size:13px; font-weight:600; color:var(--ink); margin-bottom:4px; text-align:center; }
+  .chart-sub{ font-size:11px; color:var(--ink-soft); text-align:center; margin-bottom:10px; font-weight:300; }
+  .chart-svg{ width:100%; height:auto; display:block; }
+  .chart-legend{ display:flex; gap:18px; justify-content:center; flex-wrap:wrap; margin-top:10px; font-size:11px; color:var(--ink-soft); }
+  .legend-item{ display:flex; align-items:center; gap:6px; }
+  .legend-dot{ width:11px; height:11px; border-radius:50%; }
+
+  /* table */
+  .table-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; border-radius:16px; box-shadow:var(--shadow); }
+  table{ width:100%; border-collapse:collapse; background:var(--panel); font-size:12px; min-width:560px; overflow:hidden; }
+  th,td{ padding:11px 10px; text-align:center; border-bottom:1px solid var(--line-soft); }
+  th{ background:var(--panel-2); font-weight:600; font-size:10.5px; color:var(--ink); letter-spacing:.3px; text-transform:uppercase; }
+  tr:last-child td{ border-bottom:none; }
+  .num{ font-variant-numeric:tabular-nums; }
+  .positive{ color:var(--green); font-weight:700; }
+  .negative{ color:var(--red); font-weight:700; }
+  .amber{ color:var(--gold); font-weight:700; }
+  .rose-txt{ color:var(--rose-d); font-weight:700; }
+  .cell-edit{
+    width:74px; padding:6px 7px; border:1px solid var(--line); border-radius:9px; font-size:12px;
+    text-align:center; font-family:inherit; color:var(--ink); background:var(--panel-2);
+  }
+  .cell-edit:focus{ outline:none; border-color:var(--taupe); background:#fff; }
+  .row-del{ border:none; background:transparent; color:var(--rose-d); cursor:pointer; font-size:15px; opacity:.5; }
+  .row-del:hover{ opacity:1; }
+  .add-row-btn{
+    margin-top:12px; padding:9px 18px; background:var(--panel); border:1px dashed var(--taupe);
+    border-radius:30px; font-size:12px; font-weight:500; cursor:pointer; font-family:inherit; color:var(--ink);
+  }
+  .add-row-btn:hover{ background:var(--panel-2); }
+
+  /* target highlight row */
+  .target-row td{ background:linear-gradient(90deg,#F5E9E1,#F7F0E8); }
+
+  .footer-note{
+    text-align:center; color:var(--ink-soft); font-size:11px; margin-top:30px; padding-top:20px;
+    border-top:1px solid var(--line); font-weight:300;
+  }
+  .footer-brand{ font-family:'Cormorant Garamond',serif; font-size:15px; letter-spacing:5px; color:var(--ink); margin-bottom:4px; padding-inline-start:5px; }
+
+  @media print{
+    body{ background:#fff; padding:0; }
+    .controls,.save-warn,.add-toggle,.del-btn,.row-del,.add-row-btn{ display:none !important; }
+    .panel,.chart-wrap,.table-scroll,.summary-card{ box-shadow:none; break-inside:avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- HEADER -->
+  <div class="brand-header">
+    <div class="brand-name">HALO</div>
+    <div class="brand-divider"></div>
+    <div class="brand-sub">Dental Laboratory</div>
+    <div class="brand-tool" id="toolTitle">حاسبة تكلفة السن</div>
+  </div>
+
+  <div class="save-status" id="saveStatus" data-t="savedMsg">تم الحفظ ✓</div>
+
+  <div class="controls">
+    <button class="btn" id="langToggle">English</button>
+    <button class="btn" id="resetBtn" data-t="reset">القيم الافتراضية</button>
+    <button class="btn save" id="saveBtn" data-t="save">حفظ الإعدادات</button>
+    <button class="btn primary" id="printBtn" data-t="print">طباعة / PDF</button>
+  </div>
+
+  <div class="save-warn" id="saveWarn" data-t="saveWarn">
+    الحفظ يعمل بالكامل عند تنزيل الملف وفتحه بمتصفحك (Safari/Chrome). داخل المعاينة قد لا يُحفظ بين الجلسات.
+  </div>
+
+  <div class="grid">
+    <!-- LEFT -->
+    <div>
+      <div class="panel">
+        <div class="panel-head"><h2 data-t="materialsTitle">المواد</h2></div>
+        <div class="hint" data-t="materialsHint">بنود تُحسب لكل سن. للبلوكات: السعر ÷ عدد الأسنان.</div>
+        <div id="materialsList"></div>
+        <button class="add-toggle" onclick="toggleAdd('materials')">＋ <span data-t="addItem">إضافة بند</span></button>
+        <div class="add-panel" id="materialsAdd">
+          <div class="add-zone-label" data-t="addSuggest">مقترحات (اضغط للإضافة):</div>
+          <div class="suggest-chips" id="materialsChips"></div>
+          <div class="add-custom">
+            <input type="text" id="materialsCustom" data-ph="customMat" placeholder="اسم بند جديد...">
+            <button onclick="addCustom('materials')" data-t="addBtn">إضافة</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2 data-t="salariesTitle">الرواتب الشهرية</h2></div>
+        <div class="hint" data-t="salariesHint">الراتب × العدد لكل وظيفة.</div>
+        <div id="salariesList"></div>
+        <button class="add-toggle" onclick="toggleAdd('salaries')">＋ <span data-t="addItem">إضافة بند</span></button>
+        <div class="add-panel" id="salariesAdd">
+          <div class="add-zone-label" data-t="addSuggest">مقترحات (اضغط للإضافة):</div>
+          <div class="suggest-chips" id="salariesChips"></div>
+          <div class="add-custom">
+            <input type="text" id="salariesCustom" data-ph="customSal" placeholder="مسمى وظيفي...">
+            <button onclick="addCustom('salaries')" data-t="addBtn">إضافة</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2 data-t="fixedTitle">المصاريف الثابتة</h2></div>
+        <div class="hint" data-t="fixedHint">مصاريف شهرية لا تتغير بعدد الأسنان.</div>
+        <div id="fixedList"></div>
+        <button class="add-toggle" onclick="toggleAdd('fixed')">＋ <span data-t="addItem">إضافة بند</span></button>
+        <div class="add-panel" id="fixedAdd">
+          <div class="add-zone-label" data-t="addSuggest">مقترحات (اضغط للإضافة):</div>
+          <div class="suggest-chips" id="fixedChips"></div>
+          <div class="add-custom">
+            <input type="text" id="fixedCustom" data-ph="customFix" placeholder="مصروف جديد...">
+            <button onclick="addCustom('fixed')" data-t="addBtn">إضافة</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2 data-t="pricingTitle">أسعار البيع</h2></div>
+        <div class="hint" data-t="pricingHint">سعر بيع السن الواحد للعيادة.</div>
+        <div class="single-row">
+          <label data-t="currencyLabel">العملة<span class="desc-mini" data-t="currencyDesc">تظهر بجانب كل القيم</span></label>
+          <input type="text" id="currency" maxlength="6" style="width:90px;text-align:center;font-weight:700">
+        </div>
+        <div class="single-row">
+          <label data-t="sellLow">سعر بيع منخفض<span class="desc-mini" data-t="sellLowDesc">السيناريو المتحفظ</span></label>
+          <input type="number" id="sellLow" step="any"><span class="unit cur-static">KD</span>
+        </div>
+        <div class="single-row">
+          <label data-t="sellHigh">سعر بيع مرتفع<span class="desc-mini" data-t="sellHighDesc">السيناريو المتفائل</span></label>
+          <input type="number" id="sellHigh" step="any"><span class="unit cur-static">KD</span>
+        </div>
+        <div class="single-row">
+          <label data-t="zirPct">نسبة الزيركون<span class="desc-mini" data-t="zirDesc">الباقي فينير/إيماكس</span></label>
+          <input type="number" id="zirPct" step="any" min="0" max="100"><span class="unit">%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div>
+      <div class="target-box">
+        <div class="panel-head"><h2 data-t="targetTitle">الربح المستهدف</h2></div>
+        <div class="hint" style="border:none;padding:0;margin-bottom:0" data-t="targetHint">اكتب الربح الشهري المطلوب، ويحسب لك كم سن تحتاج لكل سيناريو.</div>
+        <div class="target-input-row">
+          <label data-t="targetLabel">أريد أن أربح:</label>
+          <input type="number" id="targetProfit" step="any">
+          <span class="unit"><span class="cur-static">KD</span> / <span data-t="month">شهر</span></span>
+        </div>
+      </div>
+
+      <div class="summary-cards">
+        <div class="summary-card"><div class="label" data-t="matIvoclar">مواد Ivoclar / سن</div><div class="value num" id="out-matIvoclar">—</div></div>
+        <div class="summary-card"><div class="label" data-t="matKorean">مواد كوري / سن</div><div class="value num" id="out-matKorean">—</div></div>
+        <div class="summary-card"><div class="label" data-t="totalSalaries">إجمالي الرواتب</div><div class="value num" id="out-salaries">—</div></div>
+        <div class="summary-card"><div class="label" data-t="totalFixed">إجمالي الثابتة</div><div class="value num" id="out-fixed">—</div></div>
+      </div>
+
+      <div class="results-section">
+        <div class="section-title" data-t="scenariosTitle">السيناريوهات</div>
+        <div class="section-hint" data-t="scenariosHint">اختر سيناريو لعرض جدوله ورسمه البياني.</div>
+        <div class="scenario-tabs" id="scenarioTabs"></div>
+
+        <!-- chart -->
+        <div class="chart-wrap">
+          <div class="chart-title" id="chartTitle">—</div>
+          <div class="chart-sub" id="chartSub">—</div>
+          <svg class="chart-svg" id="chart" viewBox="0 0 600 320" preserveAspectRatio="xMidYMid meet"></svg>
+          <div class="chart-legend" id="chartLegend"></div>
+        </div>
+
+        <!-- editable table -->
+        <div class="section-hint" data-t="tableHint" style="margin-bottom:10px">عدّل الكميات (بالأزرق) لتتحدث النتائج فوراً.</div>
+        <div class="table-scroll"><div id="scenarioTableWrap"></div></div>
+        <button class="add-row-btn" onclick="addQtyRow()" data-t="addQtyRow">＋ إضافة كمية</button>
+      </div>
+
+      <div class="results-section">
+        <div class="section-title" data-t="beTitle">الملخص لكل سيناريو</div>
+        <div class="summary-cards" id="beGrid"></div>
+      </div>
+
+      <div class="footer-note">
+        <div class="footer-brand">HALO</div>
+        <span data-t="footerNote">جميع القيم بالدينار الكويتي · الأرقام تتحدث تلقائياً مع كل تعديل</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── TRANSLATIONS ─────────────────────────────────────────────
+var TR={
+ ar:{
+  toolTitle:"حاسبة تكلفة السن", savedMsg:"تم الحفظ ✓", reset:"القيم الافتراضية",
+  save:"حفظ الإعدادات", print:"طباعة / PDF",
+  saveWarn:"الحفظ يعمل بالكامل عند تنزيل الملف وفتحه بمتصفحك (Safari/Chrome). داخل المعاينة قد لا يُحفظ بين الجلسات.",
+  materialsTitle:"المواد", materialsHint:"بنود تُحسب لكل سن. للبلوكات: السعر ÷ عدد الأسنان.",
+  salariesTitle:"الرواتب الشهرية", salariesHint:"الراتب × العدد لكل وظيفة.",
+  fixedTitle:"المصاريف الثابتة", fixedHint:"مصاريف شهرية لا تتغير بعدد الأسنان.",
+  pricingTitle:"أسعار البيع", pricingHint:"سعر بيع السن الواحد للعيادة.",
+  addItem:"إضافة بند", addSuggest:"مقترحات (اضغط للإضافة):", addBtn:"إضافة",
+  currencyLabel:"العملة", currencyDesc:"تظهر بجانب كل القيم",
+  sellLow:"سعر بيع منخفض", sellLowDesc:"السيناريو المتحفظ",
+  sellHigh:"سعر بيع مرتفع", sellHighDesc:"السيناريو المتفائل",
+  zirPct:"نسبة الزيركون", zirDesc:"الباقي فينير/إيماكس",
+  targetTitle:"الربح المستهدف", targetHint:"اكتب الربح الشهري المطلوب، ويحسب لك كم سن تحتاج لكل سيناريو.",
+  targetLabel:"أريد أن أربح:", month:"شهر",
+  matIvoclar:"مواد Ivoclar / سن", matKorean:"مواد كوري / سن", totalSalaries:"إجمالي الرواتب", totalFixed:"إجمالي الثابتة",
+  scenariosTitle:"السيناريوهات", scenariosHint:"اختر سيناريو لعرض جدوله ورسمه البياني.",
+  tableHint:"عدّل الكميات (بالأزرق) لتتحدث النتائج فوراً.", addQtyRow:"＋ إضافة كمية",
+  beTitle:"الملخص لكل سيناريو",
+  footerNote:"جميع القيم بالعملة التي تختارها · الأرقام تتحدث تلقائياً مع كل تعديل",
+  thQty:"أسنان/شهر", thCostUnit:"تكلفة/سن", thRevenue:"إيراد", thCost:"تكلفة كلية",
+  thProfit:"الربح", thMargin:"هامش %", thBE:"تعادل",
+  units:"سن", perMonth:"سن / شهر", block:"بلوك", sell:"بيع", count:"عدد",
+  perTooth:"/سن", perMonthU:"/شهر",
+  ivoclarName:"Ivoclar", koreanName:"كوري",
+  beLabel:"نقطة التعادل", targetCardLabel:"للهدف", needUnits:"سن", unreachable:"غير ممكن بهذا السعر",
+  chartTitleT:"الإيراد مقابل التكلفة", chartSubT:"نقطة تقاطع الخطين = التعادل · المنطقة الخضراء = ربح",
+  legRevenue:"الإيراد", legCost:"التكلفة الكلية", legBE:"التعادل", legTarget:"الهدف",
+  customMat:"اسم بند جديد...", customSal:"مسمى وظيفي...", customFix:"مصروف جديد...",
+  confirmReset:"إرجاع كل القيم والبنود للوضع الافتراضي؟",
+  saveFail:"تعذّر الحفظ هنا. حمّل الملف وافتحه بمتصفحك ليعمل الحفظ.",
+  descPH:"وصف...", targetRowLabel:"🎯 للهدف"
+ },
+ en:{
+  toolTitle:"Unit Cost Calculator", savedMsg:"Saved ✓", reset:"Defaults",
+  save:"Save Settings", print:"Print / PDF",
+  saveWarn:"Saving works fully when you download the file and open it in your browser (Safari/Chrome). It may not persist inside the preview.",
+  materialsTitle:"Materials", materialsHint:"Per-unit items. For blocks: price ÷ units per block.",
+  salariesTitle:"Monthly Salaries", salariesHint:"Salary × count per role.",
+  fixedTitle:"Fixed Expenses", fixedHint:"Monthly costs that don't change with unit count.",
+  pricingTitle:"Sell Prices", pricingHint:"Sell price per single unit to the clinic.",
+  addItem:"Add item", addSuggest:"Suggestions (tap to add):", addBtn:"Add",
+  currencyLabel:"Currency", currencyDesc:"Shown next to all values",
+  sellLow:"Low sell price", sellLowDesc:"Conservative scenario",
+  sellHigh:"High sell price", sellHighDesc:"Optimistic scenario",
+  zirPct:"Zirconia share", zirDesc:"Remainder veneer/emax",
+  targetTitle:"Target Profit", targetHint:"Enter the monthly profit you want; it shows units needed per scenario.",
+  targetLabel:"I want to earn:", month:"mo",
+  matIvoclar:"Ivoclar mat. / unit", matKorean:"Korean mat. / unit", totalSalaries:"Total Salaries", totalFixed:"Total Fixed",
+  scenariosTitle:"Scenarios", scenariosHint:"Pick a scenario to view its table and chart.",
+  tableHint:"Edit quantities (in blue) to update results instantly.", addQtyRow:"＋ Add quantity",
+  beTitle:"Summary per Scenario",
+  footerNote:"All values in your chosen currency · numbers update automatically",
+  thQty:"Units/Mo", thCostUnit:"Cost/Unit", thRevenue:"Revenue", thCost:"Total Cost",
+  thProfit:"Profit", thMargin:"Margin %", thBE:"B-Even",
+  units:"units", perMonth:"units / month", block:"block", sell:"sell", count:"count",
+  perTooth:"/unit", perMonthU:"/mo",
+  ivoclarName:"Ivoclar", koreanName:"Korean",
+  beLabel:"Break-even", targetCardLabel:"For target", needUnits:"units", unreachable:"Not possible at this price",
+  chartTitleT:"Revenue vs Cost", chartSubT:"Lines cross = break-even · green area = profit",
+  legRevenue:"Revenue", legCost:"Total Cost", legBE:"Break-even", legTarget:"Target",
+  customMat:"New item name...", customSal:"New job title...", customFix:"New expense...",
+  confirmReset:"Reset all values and items to defaults?",
+  saveFail:"Cannot save here. Download the file and open in your browser for saving.",
+  descPH:"description...", targetRowLabel:"🎯 Target"
+ }
+};
+
+// ── DEFAULT STATE ────────────────────────────────────────────
+function uid(){ return "id"+Math.random().toString(36).slice(2,9); }
+function defaultState(){
+ return {
+  materials:[
+   {id:uid(),labelAr:"بلوك Ivoclar",labelEn:"Ivoclar block",descAr:"سعر البلوك ÷ عدد الأسنان",descEn:"Block price ÷ units",type:"blockIvoclar",price:150,perBlock:25},
+   {id:uid(),labelAr:"بلوك كوري/صيني",labelEn:"Korean/Chinese block",descAr:"سعر البلوك ÷ عدد الأسنان",descEn:"Block price ÷ units",type:"blockKorean",price:50,perBlock:25},
+   {id:uid(),labelAr:"الغليز",labelEn:"Glaze",descAr:"سعر العبوة ÷ عدد الأسنان",descEn:"Bottle ÷ units",type:"glaze",price:35,perBlock:50},
+   {id:uid(),labelAr:"السيراميك",labelEn:"Ceramic",descAr:"تكلفة لكل سن",descEn:"Per unit",type:"perTooth",val:1.0},
+   {id:uid(),labelAr:"مواد الفينير",labelEn:"Veneer materials",descAr:"للأسنان غير الزيركون",descEn:"Non-zirconia units",type:"veneer",val:1.0}
+  ],
+  salaries:[
+   {id:uid(),labelAr:"فني CAD/CAM",labelEn:"CAD/CAM Tech",descAr:"تصميم وفريزة",descEn:"Design & milling",val:800,count:1},
+   {id:uid(),labelAr:"فني السيراميك",labelEn:"Ceramic Tech",descAr:"طبقات وتلوين",descEn:"Layering",val:650,count:1},
+   {id:uid(),labelAr:"مدير المختبر",labelEn:"Lab Manager / Owner",descAr:"إدارة وإشراف",descEn:"Management",val:900,count:1},
+   {id:uid(),labelAr:"سائق",labelEn:"Driver",descAr:"توصيل واستلام",descEn:"Pickup & delivery",val:300,count:1}
+  ],
+  fixed:[
+   {id:uid(),labelAr:"الإيجار",labelEn:"Rent",descAr:"إيجار المختبر",descEn:"Lab rent",val:400},
+   {id:uid(),labelAr:"كهرباء وماء",labelEn:"Electricity & Water",descAr:"فواتير شهرية",descEn:"Monthly bills",val:40},
+   {id:uid(),labelAr:"إنترنت",labelEn:"Internet",descAr:"اتصال",descEn:"Connection",val:20},
+   {id:uid(),labelAr:"استهلاك CAD/CAM",labelEn:"CAD/CAM Depreciation",descAr:"إهلاك الأجهزة",descEn:"Equipment depreciation",val:300},
+   {id:uid(),labelAr:"مصاريف متنوعة",labelEn:"Miscellaneous",descAr:"نثريات",descEn:"Sundry",val:100}
+  ],
+  quantities:[50,100,200,300],
+  sellLow:25, sellHigh:35, zirPct:80, targetProfit:1500, currency:"KD"
+ };
+}
+
+var SUGGESTIONS={
+ materials:[
+  {labelAr:"إيماكس (e.max)",labelEn:"e.max block",val:8},
+  {labelAr:"أباتمنت تيتانيوم",labelEn:"Titanium abutment",val:12},
+  {labelAr:"رزن طباعة 3D",labelEn:"3D resin",val:0.5},
+  {labelAr:"PMMA مؤقت",labelEn:"PMMA temp",val:1.5},
+  {labelAr:"لقم فريزة (Burs)",labelEn:"Milling burs",val:0.8},
+  {labelAr:"مواد Sintering",labelEn:"Sintering",val:0.4},
+  {labelAr:"تنظيف/إيثانول",labelEn:"Ethanol/cleaning",val:0.2},
+  {labelAr:"تغليف وتعبئة",labelEn:"Packaging",val:0.3}
+ ],
+ salaries:[
+  {labelAr:"مساعد فني",labelEn:"Lab Assistant",val:350,count:1},
+  {labelAr:"محاسب",labelEn:"Accountant",val:500,count:1},
+  {labelAr:"عامل نظافة",labelEn:"Cleaner",val:200,count:1},
+  {labelAr:"فني تلميع",labelEn:"Polishing Tech",val:450,count:1},
+  {labelAr:"فني طباعة 3D",labelEn:"3D Print Tech",val:550,count:1},
+  {labelAr:"موظف استقبال",labelEn:"Receptionist",val:400,count:1},
+  {labelAr:"مشرف جودة QC",labelEn:"QC Supervisor",val:600,count:1}
+ ],
+ fixed:[
+  {labelAr:"رخصة برامج",labelEn:"Software license",val:80},
+  {labelAr:"صيانة أجهزة",labelEn:"Maintenance",val:150},
+  {labelAr:"تأمين",labelEn:"Insurance",val:100},
+  {labelAr:"اشتراك Exocad",labelEn:"Exocad sub",val:120},
+  {labelAr:"قرطاسية",labelEn:"Stationery",val:40},
+  {labelAr:"وقود سيارات",labelEn:"Vehicle fuel",val:120},
+  {labelAr:"رسوم بلدية",labelEn:"Municipality fees",val:60},
+  {labelAr:"تسويق إضافي",labelEn:"Extra ads",val:200}
+ ]
+};
+
+// ── STATE / HELPERS ──────────────────────────────────────────
+var lang="ar", state=null, activeIdx=0, STORAGE_KEY="haloCalc_v1", LANG_KEY="haloCalc_lang";
+function $(id){ return document.getElementById(id); }
+function fmt(n){ return Math.round(n).toLocaleString("en-US"); }
+function fmt2(n){ return (Math.round(n*100)/100).toFixed(2); }
+function fmt3(n){ return (Math.round(n*1000)/1000).toFixed(3); }
+function esc(s){ return (s||"").replace(/"/g,'&quot;'); }
+function L(it){ return lang==="ar"?it.labelAr:(it.labelEn||it.labelAr); }
+function D(it){ return lang==="ar"?(it.descAr||""):(it.descEn||it.descAr||""); }
+function CUR(){ return (state&&state.currency!=null)?state.currency:""; }
+function syncCurrency(){ var c=CUR(), els=document.querySelectorAll(".cur-static"); for(var i=0;i<els.length;i++) els[i].textContent=c; }
+
+function loadState(){
+ try{ var lg=localStorage.getItem(LANG_KEY); if(lg==="ar"||lg==="en") lang=lg; }catch(e){}
+ try{ var r=localStorage.getItem(STORAGE_KEY); if(r){ state=JSON.parse(r); return; } }catch(e){}
+ state=defaultState();
+}
+function saveState(){
+ try{
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
+  localStorage.setItem(LANG_KEY,lang);
+  var s=$("saveStatus"); s.classList.add("show"); setTimeout(function(){ s.classList.remove("show"); },1600);
+ }catch(e){ alert(TR[lang].saveFail); }
+}
+
+// ── CALC ─────────────────────────────────────────────────────
+function materialPerTooth(brand){
+ var zir=state.zirPct/100, ven=1-zir, zp=0, vp=0;
+ state.materials.forEach(function(m){
+  if(m.type==="blockIvoclar"){ if(brand==="ivoclar") zp+=m.price/(m.perBlock||1); }
+  else if(m.type==="blockKorean"){ if(brand==="korean") zp+=m.price/(m.perBlock||1); }
+  else if(m.type==="glaze"){ zp+=m.price/(m.perBlock||1); }
+  else if(m.type==="veneer"){ vp+=(m.val||0); }
+  else if(m.type==="perTooth"){ zp+=(m.val||0); vp+=(m.val||0); }
+ });
+ return zir*zp + ven*vp;
+}
+function totalSalaries(){ var t=0; state.salaries.forEach(function(s){ t+=(s.val||0)*(s.count||1); }); return t; }
+function totalFixedExtra(){ var t=0; state.fixed.forEach(function(f){ t+=(f.val||0); }); return t; }
+function totalFixed(){ return totalSalaries()+totalFixedExtra(); }
+
+function calc(qty,mat,fixed,sell){
+ var revenue=sell*qty, cost=mat*qty+fixed, profit=revenue-cost;
+ var margin=revenue>0?(profit/revenue)*100:0, costPer=qty>0?cost/qty:0;
+ var d=sell-mat, be=d>0?Math.ceil(fixed/d):Infinity;
+ var ut=d>0?Math.ceil((fixed+state.targetProfit)/d):Infinity;
+ return {qty:qty,revenue:revenue,cost:cost,profit:profit,margin:margin,costPer:costPer,be:be,ut:ut};
+}
+function scenarios(){
+ var t=TR[lang], mi=materialPerTooth("ivoclar"), mk=materialPerTooth("korean");
+ return [
+  {full:t.ivoclarName+" · "+state.sellLow+" "+CUR(), mat:mi, sell:state.sellLow, c:"#9B886F", brand:t.ivoclarName, blockType:"blockIvoclar"},
+  {full:t.ivoclarName+" · "+state.sellHigh+" "+CUR(), mat:mi, sell:state.sellHigh, c:"#8A7C6C", brand:t.ivoclarName, blockType:"blockIvoclar"},
+  {full:t.koreanName+" · "+state.sellLow+" "+CUR(), mat:mk, sell:state.sellLow, c:"#C9A89E", brand:t.koreanName, blockType:"blockKorean"},
+  {full:t.koreanName+" · "+state.sellHigh+" "+CUR(), mat:mk, sell:state.sellHigh, c:"#B6928A", brand:t.koreanName, blockType:"blockKorean"}
+ ];
+}
+
+// ── RENDER INPUT LISTS ───────────────────────────────────────
+function renderMaterials(){
+ var t=TR[lang], host=$("materialsList"); host.innerHTML="";
+ state.materials.forEach(function(m){
+  var isBlock=(m.type==="blockIvoclar"||m.type==="blockKorean"||m.type==="glaze"), v;
+  if(isBlock){
+   v='<div class="item-val-wrap"><input class="item-val" type="number" step="any" value="'+m.price+'" oninput="updMat(\''+m.id+'\',\'price\',this.value)"><span class="item-unit">'+CUR()+'</span></div>'+
+     '<div class="item-val-wrap" style="margin-top:5px"><input class="item-val item-mult" type="number" step="any" value="'+m.perBlock+'" oninput="updMat(\''+m.id+'\',\'perBlock\',this.value)"><span class="item-unit">'+(lang==="ar"?"سن":"u")+'</span></div>';
+  } else {
+   v='<div class="item-val-wrap"><input class="item-val" type="number" step="any" value="'+(m.val||0)+'" oninput="updMat(\''+m.id+'\',\'val\',this.value)"><span class="item-unit">'+CUR()+t.perTooth+'</span></div>';
+  }
+  var row=document.createElement("div"); row.className="item-row";
+  row.innerHTML='<div class="item-main"><input class="item-label-edit" value="'+esc(L(m))+'" oninput="updMatTxt(\''+m.id+'\',\'label\',this.value)"><input class="item-desc" value="'+esc(D(m))+'" placeholder="'+t.descPH+'" oninput="updMatTxt(\''+m.id+'\',\'desc\',this.value)"></div><div>'+v+'</div><button class="del-btn" onclick="delItem(\'materials\',\''+m.id+'\')">×</button>';
+  host.appendChild(row);
+ });
+}
+function renderSalaries(){
+ var t=TR[lang], host=$("salariesList"); host.innerHTML="";
+ state.salaries.forEach(function(s){
+  var row=document.createElement("div"); row.className="item-row";
+  row.innerHTML='<div class="item-main"><input class="item-label-edit" value="'+esc(L(s))+'" oninput="updSal(\''+s.id+'\',\'label\',this.value)"><input class="item-desc" value="'+esc(D(s))+'" placeholder="'+t.descPH+'" oninput="updSal(\''+s.id+'\',\'desc\',this.value)"></div>'+
+   '<div><div class="item-val-wrap"><input class="item-val" type="number" step="any" value="'+s.val+'" oninput="updSal(\''+s.id+'\',\'val\',this.value)"><span class="item-unit">'+CUR()+'</span></div>'+
+   '<div class="item-val-wrap" style="margin-top:5px"><span class="item-unit">×</span><input class="item-val item-mult" type="number" step="1" min="0" value="'+(s.count||1)+'" oninput="updSal(\''+s.id+'\',\'count\',this.value)"></div></div>'+
+   '<button class="del-btn" onclick="delItem(\'salaries\',\''+s.id+'\')">×</button>';
+  host.appendChild(row);
+ });
+}
+function renderFixed(){
+ var t=TR[lang], host=$("fixedList"); host.innerHTML="";
+ state.fixed.forEach(function(f){
+  var row=document.createElement("div"); row.className="item-row";
+  row.innerHTML='<div class="item-main"><input class="item-label-edit" value="'+esc(L(f))+'" oninput="updFix(\''+f.id+'\',\'label\',this.value)"><input class="item-desc" value="'+esc(D(f))+'" placeholder="'+t.descPH+'" oninput="updFix(\''+f.id+'\',\'desc\',this.value)"></div>'+
+   '<div class="item-val-wrap"><input class="item-val" type="number" step="any" value="'+f.val+'" oninput="updFix(\''+f.id+'\',\'val\',this.value)"><span class="item-unit">'+CUR()+t.perMonthU+'</span></div>'+
+   '<button class="del-btn" onclick="delItem(\'fixed\',\''+f.id+'\')">×</button>';
+  host.appendChild(row);
+ });
+}
+function renderChips(){
+ ["materials","salaries","fixed"].forEach(function(cat){
+  var host=$(cat+"Chips"); host.innerHTML="";
+  SUGGESTIONS[cat].forEach(function(sug,i){
+   var c=document.createElement("button"); c.className="chip";
+   c.textContent="＋ "+(lang==="ar"?sug.labelAr:sug.labelEn);
+   c.onclick=function(){ addSuggestion(cat,i); };
+   host.appendChild(c);
+  });
+ });
+}
+
+// ── UPDATE HANDLERS ──────────────────────────────────────────
+function find(cat,id){ return state[cat].filter(function(x){return x.id===id;})[0]; }
+function updMat(id,f,v){ var m=find("materials",id); if(m){ m[f]=parseFloat(v)||0; renderResults(); } }
+function updMatTxt(id,f,v){ var m=find("materials",id); if(m){ if(f==="label"){ if(lang==="ar")m.labelAr=v; else m.labelEn=v; } else { if(lang==="ar")m.descAr=v; else m.descEn=v; } if(f==="label") renderResults(); } }
+function updSal(id,f,v){ var s=find("salaries",id); if(!s)return;
+ if(f==="val")s.val=parseFloat(v)||0; else if(f==="count")s.count=parseInt(v)||0;
+ else if(f==="label"){ if(lang==="ar")s.labelAr=v; else s.labelEn=v; } else { if(lang==="ar")s.descAr=v; else s.descEn=v; }
+ if(f==="val"||f==="count") renderResults(); }
+function updFix(id,f,v){ var x=find("fixed",id); if(!x)return;
+ if(f==="val")x.val=parseFloat(v)||0; else if(f==="label"){ if(lang==="ar")x.labelAr=v; else x.labelEn=v; } else { if(lang==="ar")x.descAr=v; else x.descEn=v; }
+ if(f==="val") renderResults(); }
+function delItem(cat,id){ state[cat]=state[cat].filter(function(x){return x.id!==id;}); renderAll(); }
+
+function toggleAdd(cat){ $(cat+"Add").classList.toggle("open"); }
+function addSuggestion(cat,i){
+ var s=SUGGESTIONS[cat][i], it={id:uid(),labelAr:s.labelAr,labelEn:s.labelEn,descAr:"",descEn:""};
+ if(cat==="materials"){ it.type="perTooth"; it.val=s.val||0; }
+ else if(cat==="salaries"){ it.val=s.val||0; it.count=s.count||1; }
+ else { it.val=s.val||0; }
+ state[cat].push(it); renderAll(); $(cat+"Add").classList.add("open");
+}
+function addCustom(cat){
+ var inp=$(cat+"Custom"), n=inp.value.trim(); if(!n)return;
+ var it={id:uid(),labelAr:n,labelEn:n,descAr:"",descEn:""};
+ if(cat==="materials"){ it.type="perTooth"; it.val=0; }
+ else if(cat==="salaries"){ it.val=0; it.count=1; }
+ else { it.val=0; }
+ state[cat].push(it); inp.value=""; renderAll(); $(cat+"Add").classList.add("open");
+}
+
+function addQtyRow(){ state.quantities.push(0); renderResults(); }
+function updQty(i,v){ state.quantities[i]=parseFloat(v)||0; renderResults(); }
+function delQty(i){ state.quantities.splice(i,1); renderResults(); }
+
+// ── SCENARIO TABS (built once, stable) ───────────────────────
+function buildTabs(){
+ var host=$("scenarioTabs"); host.innerHTML="";
+ scenarios().forEach(function(sc,i){
+  var b=document.createElement("button");
+  b.className="scenario-tab"+(i===activeIdx?" active":"");
+  b.textContent=sc.full;
+  b.setAttribute("data-idx",i);
+  b.onclick=function(){ activeIdx=i; updateTabsActive(); renderScenarioDetail(); };
+  host.appendChild(b);
+ });
+}
+function updateTabsActive(){
+ var tabs=$("scenarioTabs").children;
+ for(var i=0;i<tabs.length;i++){ tabs[i].className="scenario-tab"+(i===activeIdx?" active":""); }
+}
+
+// ── CHART (SVG, revenue vs cost) ─────────────────────────────
+function renderChart(sc){
+ var t=TR[lang], fixed=totalFixed();
+ // break-even & target units for THIS scenario (were missing on sc → NaN chart)
+ var d=sc.sell-sc.mat;
+ var be=d>0?Math.ceil(fixed/d):Infinity;
+ var ut=d>0?Math.ceil((fixed+state.targetProfit)/d):Infinity;
+ var W=600,H=320, padL=58,padR=20,padT=20,padB=42;
+ var plotW=W-padL-padR, plotH=H-padT-padB;
+ // x range: 0 .. maxQty (max of quantities, target units, breakeven, 1000)
+ var maxQ=Math.max.apply(null,state.quantities.concat([be===Infinity?0:be, ut===Infinity?0:ut, 500]));
+ maxQ=Math.max(maxQ*1.15, 50);
+ var revAtMax=sc.sell*maxQ, costAtMax=sc.mat*maxQ+fixed;
+ var maxY=Math.max(revAtMax,costAtMax)*1.08, minY=0;
+ // some cost starts at fixed (>0); include fixed in y range already
+ function X(q){ return padL + (q/maxQ)*plotW; }
+ function Y(v){ return padT + plotH - ((v-minY)/(maxY-minY))*plotH; }
+ var rtl=(lang==="ar");
+ // axes ticks
+ var svg="";
+ // gridlines Y
+ var yt=4;
+ for(var i=0;i<=yt;i++){
+  var vy=minY+(maxY-minY)*i/yt, yy=Y(vy);
+  svg+='<line x1="'+padL+'" y1="'+yy+'" x2="'+(W-padR)+'" y2="'+yy+'" stroke="#EADFD0" stroke-width="1"/>';
+  svg+='<text x="'+(padL-8)+'" y="'+(yy+3)+'" font-size="9" fill="#8A7C6C" text-anchor="end">'+fmt(vy)+'</text>';
+ }
+ // x ticks
+ var xt=5;
+ for(var j=0;j<=xt;j++){
+  var vx=maxQ*j/xt, xx=X(vx);
+  svg+='<text x="'+xx+'" y="'+(H-padB+16)+'" font-size="9" fill="#8A7C6C" text-anchor="middle">'+fmt(vx)+'</text>';
+ }
+ // axis labels
+ svg+='<text x="'+(padL+plotW/2)+'" y="'+(H-4)+'" font-size="10" fill="#5E5042" text-anchor="middle">'+(rtl?"عدد الأسنان / شهر":"units / month")+'</text>';
+ // shade profit region between cost and revenue where rev>cost
+ if(d>0 && be<=maxQ){
+  var pts="";
+  pts+= X(be)+","+Y(sc.sell*be)+" ";
+  pts+= X(maxQ)+","+Y(sc.sell*maxQ)+" ";
+  pts+= X(maxQ)+","+Y(sc.mat*maxQ+fixed)+" ";
+  svg+='<polygon points="'+pts+'" fill="#6B8E5A" opacity="0.12"/>';
+ }
+ // revenue line (from 0,0)
+ svg+='<line x1="'+X(0)+'" y1="'+Y(0)+'" x2="'+X(maxQ)+'" y2="'+Y(sc.sell*maxQ)+'" stroke="'+sc.c+'" stroke-width="2.5"/>';
+ // cost line (from 0,fixed)
+ svg+='<line x1="'+X(0)+'" y1="'+Y(fixed)+'" x2="'+X(maxQ)+'" y2="'+Y(sc.mat*maxQ+fixed)+'" stroke="#BC6A5A" stroke-width="2.5" stroke-dasharray="0"/>';
+ // breakeven marker
+ if(d>0 && be<=maxQ){
+  var bx=X(be), by=Y(sc.sell*be);
+  svg+='<line x1="'+bx+'" y1="'+padT+'" x2="'+bx+'" y2="'+(H-padB)+'" stroke="#C9A86A" stroke-width="1" stroke-dasharray="4 3"/>';
+  svg+='<circle cx="'+bx+'" cy="'+by+'" r="5" fill="#C9A86A" stroke="#fff" stroke-width="1.5"/>';
+  svg+='<text x="'+bx+'" y="'+(padT+12)+'" font-size="9" fill="#C9A86A" text-anchor="middle" font-weight="700">'+t.legBE+" "+fmt(be)+'</text>';
+ }
+ // target marker
+ if(ut!==Infinity && ut<=maxQ){
+  var tx=X(ut), ty=Y(sc.sell*ut);
+  svg+='<line x1="'+tx+'" y1="'+padT+'" x2="'+tx+'" y2="'+(H-padB)+'" stroke="#B6928A" stroke-width="1" stroke-dasharray="2 3"/>';
+  svg+='<circle cx="'+tx+'" cy="'+ty+'" r="5" fill="#B6928A" stroke="#fff" stroke-width="1.5"/>';
+  svg+='<text x="'+tx+'" y="'+(padT+26)+'" font-size="9" fill="#B6928A" text-anchor="middle" font-weight="700">🎯 '+fmt(ut)+'</text>';
+ }
+ // axis lines
+ svg+='<line x1="'+padL+'" y1="'+padT+'" x2="'+padL+'" y2="'+(H-padB)+'" stroke="#D8CBB6" stroke-width="1.5"/>';
+ svg+='<line x1="'+padL+'" y1="'+(H-padB)+'" x2="'+(W-padR)+'" y2="'+(H-padB)+'" stroke="#D8CBB6" stroke-width="1.5"/>';
+
+ $("chart").innerHTML=svg;
+ $("chartTitle").textContent=sc.full;
+ $("chartSub").textContent=t.chartSubT;
+ $("chartLegend").innerHTML=
+  '<span class="legend-item"><span class="legend-dot" style="background:'+sc.c+'"></span>'+t.legRevenue+'</span>'+
+  '<span class="legend-item"><span class="legend-dot" style="background:#BC6A5A"></span>'+t.legCost+'</span>'+
+  '<span class="legend-item"><span class="legend-dot" style="background:#C9A86A"></span>'+t.legBE+'</span>'+
+  '<span class="legend-item"><span class="legend-dot" style="background:#B6928A"></span>'+t.legTarget+'</span>';
+}
+
+// ── SCENARIO DETAIL (table + chart) ──────────────────────────
+function renderScenarioDetail(){
+ var t=TR[lang], scs=scenarios(), sc=scs[activeIdx], fixed=totalFixed();
+ renderChart(sc);
+ var h='<table><thead><tr>'+
+  '<th>'+t.thQty+'</th><th>'+t.thCostUnit+'</th><th>'+t.thRevenue+'</th><th>'+t.thCost+'</th>'+
+  '<th>'+t.thProfit+'</th><th>'+t.thMargin+'</th><th></th></tr></thead><tbody>';
+ state.quantities.forEach(function(q,i){
+  var r=calc(q,sc.mat,fixed,sc.sell), pc=r.profit>=0?"positive":"negative";
+  h+='<tr><td><input class="cell-edit" type="number" step="1" value="'+q+'" oninput="updQty('+i+',this.value)"></td>'+
+   '<td class="num">'+fmt2(r.costPer)+'</td>'+
+   '<td class="num">'+fmt(r.revenue)+'</td>'+
+   '<td class="num">'+fmt(r.cost)+'</td>'+
+   '<td class="num '+pc+'">'+fmt(r.profit)+'</td>'+
+   '<td class="num '+pc+'">'+fmt2(r.margin)+'%</td>'+
+   '<td><button class="row-del" onclick="delQty('+i+')">×</button></td></tr>';
+ });
+ // target row
+ var rt=calc(0,sc.mat,fixed,sc.sell);
+ h+='<tr class="target-row"><td class="rose-txt" style="font-weight:700">'+t.targetRowLabel+'<br><span style="font-weight:400;font-size:9px">('+fmt(state.targetProfit)+' '+CUR()+')</span></td>';
+ if(rt.ut!==Infinity){
+  h+='<td colspan="5" class="rose-txt num" style="text-align:center;font-size:13px">'+fmt(rt.ut)+' '+t.needUnits+' '+t.perMonthU+'</td>';
+ } else {
+  h+='<td colspan="5" style="color:#BC6A5A;font-size:11px">'+t.unreachable+'</td>';
+ }
+ h+='<td></td></tr>';
+ h+='</tbody></table>';
+ $("scenarioTableWrap").innerHTML=h;
+}
+
+// ── BE / SUMMARY CARDS ───────────────────────────────────────
+function renderBE(){
+ var t=TR[lang], scs=scenarios(), fixed=totalFixed(), h="";
+ scs.forEach(function(sc){
+  var r=calc(0,sc.mat,fixed,sc.sell);
+  h+='<div class="summary-card" style="border-top:3px solid '+sc.c+'">'+
+   '<div class="label">'+sc.full+'</div>'+
+   '<div class="value num">'+(r.be!==Infinity?fmt(r.be):"—")+' <small>'+t.units+' · '+t.beLabel+'</small></div>'+
+   '<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line-soft)">'+
+   '<div class="label" style="color:var(--rose-d)">'+t.targetCardLabel+' ('+fmt(state.targetProfit)+' '+CUR()+')</div>'+
+   '<div class="value num rose-txt" style="font-size:18px">'+(r.ut!==Infinity?fmt(r.ut):"—")+' <small>'+t.units+'</small></div>'+
+   '</div></div>';
+ });
+ $("beGrid").innerHTML=h;
+}
+
+// ── MASTER RENDER ────────────────────────────────────────────
+function renderResults(){
+ var fixed=totalFixed();
+ syncCurrency();
+ $("out-matIvoclar").textContent=fmt3(materialPerTooth("ivoclar"))+" "+CUR();
+ $("out-matKorean").textContent=fmt3(materialPerTooth("korean"))+" "+CUR();
+ $("out-salaries").textContent=fmt(totalSalaries())+" "+CUR();
+ $("out-fixed").textContent=fmt(fixed)+" "+CUR();
+ buildTabs();
+ renderScenarioDetail();
+ renderBE();
+}
+function renderAll(){ renderMaterials(); renderSalaries(); renderFixed(); renderChips(); renderResults(); }
+
+// ── SINGLE INPUTS ────────────────────────────────────────────
+function bindSingles(){
+ $("currency").value=state.currency;
+ $("sellLow").value=state.sellLow; $("sellHigh").value=state.sellHigh;
+ $("zirPct").value=state.zirPct; $("targetProfit").value=state.targetProfit;
+ $("currency").oninput=function(){ state.currency=this.value; renderAll(); };
+ $("sellLow").oninput=function(){ state.sellLow=parseFloat(this.value)||0; renderResults(); };
+ $("sellHigh").oninput=function(){ state.sellHigh=parseFloat(this.value)||0; renderResults(); };
+ $("zirPct").oninput=function(){ state.zirPct=Math.min(100,Math.max(0,parseFloat(this.value)||0)); renderResults(); };
+ $("targetProfit").oninput=function(){ state.targetProfit=parseFloat(this.value)||0; renderResults(); };
+}
+
+// ── LANGUAGE ─────────────────────────────────────────────────
+function applyLanguage(){
+ var t=TR[lang];
+ document.documentElement.lang=lang;
+ document.documentElement.dir=lang==="ar"?"rtl":"ltr";
+ document.body.dir=lang==="ar"?"rtl":"ltr";
+ var els=document.querySelectorAll("[data-t]");
+ for(var i=0;i<els.length;i++){ var k=els[i].getAttribute("data-t"); if(t[k]) els[i].textContent=t[k]; }
+ var ph=document.querySelectorAll("[data-ph]");
+ for(var j=0;j<ph.length;j++){ var pk=ph[j].getAttribute("data-ph"); if(t[pk]) ph[j].placeholder=t[pk]; }
+ $("toolTitle").textContent=t.toolTitle;
+ $("langToggle").textContent=lang==="ar"?"English":"العربية";
+ renderAll();
+}
+
+// ── EVENTS ───────────────────────────────────────────────────
+$("langToggle").addEventListener("click",function(){ lang=lang==="ar"?"en":"ar"; try{ localStorage.setItem(LANG_KEY,lang); }catch(e){} applyLanguage(); });
+$("saveBtn").addEventListener("click",saveState);
+$("printBtn").addEventListener("click",function(){ window.print(); });
+$("resetBtn").addEventListener("click",function(){
+ if(confirm(TR[lang].confirmReset)){ state=defaultState(); activeIdx=0; bindSingles(); renderAll(); }
+});
+
+// ── INIT ─────────────────────────────────────────────────────
+loadState(); bindSingles(); applyLanguage();
+// Embedded inside the Evora app (iframe): hosted saving works, hide the
+// download-the-file warning.
+if(window.self!==window.top){ var w=$("saveWarn"); if(w) w.style.display="none"; }
+</script>
+</body>
+</html>

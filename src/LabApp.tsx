@@ -14,7 +14,7 @@ RefreshCw, Eye, EyeOff, Archive, ArrowUpRight, ArrowDownRight, Crown,
 Edit3, Copy, MoreHorizontal, Bell, Cpu, FileSpreadsheet, FileImage,
 GitBranch, Clock, ArrowRight, MapPin, QrCode, Camera, ScanLine,
 CheckCircle2, CircleDot, LogIn, History, Hourglass, Calendar, User, Tv, Maximize2,
-Lock, LogOut, Cloud, ShieldCheck, KeyRound
+Lock, LogOut, Cloud, ShieldCheck, KeyRound, Calculator
 } from 'lucide-react';
 import {
 ResponsiveContainer, LineChart, Line, AreaChart, Area, BarChart, Bar,
@@ -84,6 +84,7 @@ tagline: "نظام إدارة المختبر الذكي",
 dashboard: "لوحة التحكم", calculator: "حاسبة التكلفة", cases: "إدارة الحالات",
 inventory: "المخزون", technicians: "الفنيون", analytics: "التحليلات",
 aiAssistant: "المساعد الذكي", aiAgents: "وكلاء الذكاء", settings: "الإعدادات",
+costCalc: "حاسبة التكلفة",
 flow: "خط الإنتاج", scanner: "مسح QR", display: "شاشة العرض",
 overview: "نظرة عامة", liveStats: "إحصائيات مباشرة",
 totalRevenue: "الإيرادات الإجمالية", monthlyProfit: "الربح الشهري",
@@ -419,6 +420,7 @@ tagline: "Intelligent Lab Management System",
 dashboard: "Dashboard", calculator: "Cost Calculator", cases: "Case Management",
 inventory: "Inventory", technicians: "Technicians", analytics: "Analytics",
 aiAssistant: "AI Assistant", aiAgents: "AI Agents", settings: "Settings",
+costCalc: "Cost Calculator",
 flow: "Production Flow", scanner: "QR Scanner", display: "Display",
 overview: "Overview", liveStats: "Live Statistics",
 totalRevenue: "Total Revenue", monthlyProfit: "Monthly Profit",
@@ -954,10 +956,10 @@ function seedInventory() {
 
 // Which views each role can open. Manager sees everything.
 const ROLE_VIEWS = {
-  manager: ['dashboard', 'flow', 'display', 'scanner', 'cases', 'inventory', 'technicians', 'accounting', 'analytics', 'agents', 'ai', 'settings'],
+  manager: ['dashboard', 'flow', 'display', 'scanner', 'cases', 'inventory', 'technicians', 'accounting', 'analytics', 'costcalc', 'agents', 'ai', 'settings'],
   reception: ['dashboard', 'flow', 'display', 'scanner', 'cases', 'inventory', 'agents'],
   technician: ['flow', 'display', 'scanner', 'cases'],
-  accountant: ['dashboard', 'accounting', 'analytics', 'cases', 'display', 'agents'],
+  accountant: ['dashboard', 'accounting', 'analytics', 'costcalc', 'cases', 'display', 'agents'],
 };
 const ROLE_LABELS = {
   manager: { ar: 'مدير', en: 'Manager', color: '#7c3aed' },
@@ -1756,6 +1758,7 @@ body[dir="rtl"] .accent-bar { border-radius: 3px 0 0 3px; }
     {view === 'technicians' && <TechniciansView ctx={ctx} />}
     {view === 'accounting' && <AccountingView ctx={ctx} />}
     {view === 'analytics' && <AnalyticsView ctx={ctx} />}
+    {view === 'costcalc' && <CostCalculatorView />}
     {view === 'ai' && <AIAssistant ctx={ctx} />}
     {view === 'agents' && <AIAgentsView ctx={ctx} setView={setView} />}
     {view === 'settings' && <SettingsView ctx={ctx} setLang={setLang} handleReset={handleReset} />}
@@ -1917,6 +1920,27 @@ style={{ background: '#f6f8fb', border: '1px solid rgba(15,50,90,0.10)', cursor:
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+//  COST CALCULATOR (embedded standalone tool from /public/calculator.html)
+// ═══════════════════════════════════════════════════════════════════════
+function CostCalculatorView() {
+return (
+<div className="animate-fade-in" style={{ margin: '-8px' }}>
+<iframe
+src="/calculator.html"
+title="Cost Calculator"
+style={{
+width: '100%',
+height: 'calc(100vh - 90px)',
+border: 'none',
+borderRadius: 16,
+background: '#EFE7DB',
+}}
+/>
+</div>
+);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 //  SIDEBAR
 // ═══════════════════════════════════════════════════════════════════════
 function Sidebar({ view, setView, t, isRtl, lang, mobileMenuOpen, setMobileMenuOpen, notifCount, allowedViews, cloudEnabled, cloudError, currentUser, onLogout }) {
@@ -1930,6 +1954,7 @@ const navItems = [
 { id: 'technicians', icon: UserCog, label: t.technicians, group: 'ops' },
 { id: 'accounting', icon: DollarSign, label: t.accounting, group: 'ops' },
 { id: 'analytics', icon: BarChart3, label: t.analytics, group: 'insight' },
+{ id: 'costcalc', icon: Calculator, label: t.costCalc, group: 'insight' },
 { id: 'agents', icon: Cpu, label: t.aiAgents, group: 'insight' },
 { id: 'ai', icon: Sparkles, label: t.aiAssistant, group: 'insight' },
 { id: 'settings', icon: Settings, label: t.settings, group: 'system' },
